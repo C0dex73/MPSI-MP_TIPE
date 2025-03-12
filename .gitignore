@@ -1,0 +1,4 @@
+/lib/*.o
+/bin/
+.git/
+.vscode/
