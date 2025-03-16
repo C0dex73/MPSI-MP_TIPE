@@ -1,9 +1,9 @@
 EXEC:=app
 
 #COMPILER
-C:=g++
+C:=gcc
 CFLAGS:=
-LFLAGS:=-std=c++20 -I./src/ -lGL -lglfw
+LFLAGS:=-I./src/ -lGL -lglfw
 DFLAGS:=-g -Wall
 BFLAGS:=-s
 
@@ -12,7 +12,7 @@ BIN_DIR:=bin
 OBJ_EXT:=o
 BUILD_DIR:=build
 SRC_DIR:=src
-SRC_EXT:=cc
+SRC_EXT:=c
 LIB_DIR:=lib
 
 #PROCESSED VARS
