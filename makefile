@@ -3,7 +3,7 @@ EXEC:=app
 #COMPILER
 C:=gcc
 CFLAGS:=
-LFLAGS:=-I./src/ -lGL -lglfw
+LFLAGS:=-I./src/ -lGL -lglfw -lm
 DFLAGS:=-g -Wall
 BFLAGS:=-s
 
