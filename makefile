@@ -14,9 +14,13 @@ BUILD_DIR:=build
 SRC_DIR:=src
 SRC_EXT:=c
 LIB_DIR:=lib
+SHADER_DIR:=$(SRC_DIR)
+SHADER_EXT:=glsl
+
 
 #PROCESSED VARS
 SRC_FILES:=$(wildcard ./$(SRC_DIR)/*.$(SRC_EXT))
+SHADER_FILES:=$(wildcard ./$(SHADER_DIR)/*.$(SHADER_EXT))
 OBJ_FILES:=$(foreach file,$(filter-out $(wildcard ./$(LIB_DIR)/*.$(OBJ_EXT)), $(wildcard ./$(LIB_DIR)/*)),$(file:./$(LIB_DIR)/%=./$(BIN_DIR)/%.$(OBJ_EXT))) $(foreach file,$(SRC_FILES),$(file:./$(SRC_DIR)/%.$(SRC_EXT)=./$(BIN_DIR)/%.$(SRC_EXT).$(OBJ_EXT)))
 
 #RULES
@@ -46,6 +50,9 @@ $(EXEC)_d: bin_dir $(OBJ_FILES)
 
 bin_dir:
 	mkdir -p ./$(BIN_DIR)/
+
+shaders.o: $(SHADER_FILES)
+	ld -r -b binary -o ./$(BUILD_DIR)/shaders.o $(SHADER_FILES)
 
 #DEBUG
 debug:

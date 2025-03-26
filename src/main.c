@@ -7,16 +7,19 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
-#define MATRIXWIDTH 800
-#define MATRIXHEIGTH 600
-#define CELLSIZE 1
+#define MATRIXWIDTH 1920/2
+#define MATRIXHEIGTH 505
+#define CELLSIZE 2
+#define STR_(X) #X
+#define STR(X) STR_(X)
 
 struct Cell;
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void cursor_position_callback(GLFWwindow* window, double xpos, double ypos);
 void processInput(GLFWwindow *window, unsigned int VBO);
-float growth(unsigned int x, unsigned int y);
+float growth(int x, int y);
 void doStep(unsigned int VBO);
+int loopback(int value, int max);
 
 struct Cell {
     float x, y;
@@ -33,6 +36,7 @@ const char *vShaderP =
 "{\n"
 "   cellState = state;\n"
 "   gl_Position = vec4(aPos.x, aPos.y, 0.0, 1.0);\n"
+"   gl_PointSize = "STR(CELLSIZE-1)";\n"
 "}\0";
 
 const char *fShaderP = 
@@ -45,10 +49,9 @@ const char *fShaderP =
 "}\n\0";
 
 struct Cell matrix[MATRIXWIDTH][MATRIXHEIGTH];
-unsigned int vertexIndexes[MATRIXWIDTH-1][MATRIXHEIGTH-1][2][3];
 
 double now, deltaTime, lastFrameTime;
-const double fpsMax = 1.f/60.f;
+const double fpsMax = 60.f;
 bool step;
 bool rpress;
 
@@ -56,17 +59,10 @@ int main() {
     srand(time(0));
     for(unsigned int i = 0; i < MATRIXWIDTH; ++i) {
         for(unsigned int j = 0; j < MATRIXHEIGTH; ++j) {
-            matrix[i][j].x = 2.f*i/(MATRIXWIDTH-1)-1.f;
-            matrix[i][j].y = 1.f-2.f*j/(MATRIXHEIGTH-1);
+            matrix[i][j].x = 2.f*(i+.5f)/(MATRIXWIDTH)-1.f;
+            matrix[i][j].y = 1.f-2.f*(j+.5f)/(MATRIXHEIGTH);
             matrix[i][j].oldState = ((float)rand()/(float)(RAND_MAX));
             matrix[i][j].state = ((float)rand()/(float)(RAND_MAX));
-            if(i == MATRIXWIDTH-1 || j == MATRIXHEIGTH-1) { continue; }
-            unsigned int cellIndex[2][3] = 
-            {
-                {(1+j)+(1+i)*MATRIXHEIGTH, j+(1+i)*MATRIXHEIGTH, j+i*MATRIXHEIGTH },
-                {(1+j)+(1+i)*MATRIXHEIGTH, (1+j)+i*MATRIXHEIGTH, j+i*MATRIXHEIGTH }
-            };
-            memcpy(&vertexIndexes[i][j], &cellIndex[0][0], sizeof(cellIndex));
         }
     }
 
@@ -95,10 +91,9 @@ int main() {
     }
 
     //buffers init
-    unsigned int VAO, VBO, EBO, vShader, fShader, pShader;
+    unsigned int VAO, VBO, vShader, fShader, pShader;
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
-    glGenBuffers(1, &EBO);
     vShader = glCreateShader(GL_VERTEX_SHADER);
     fShader = glCreateShader(GL_FRAGMENT_SHADER);
     pShader = glCreateProgram();
@@ -141,9 +136,6 @@ int main() {
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(matrix), &matrix[0][0], GL_DYNAMIC_DRAW);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(vertexIndexes), &vertexIndexes[0][0][0][0], GL_DYNAMIC_DRAW);
-
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(struct Cell), (void*)0);
     glEnableVertexAttribArray(0);
 
@@ -162,6 +154,8 @@ int main() {
 
 
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    glEnable(GL_PROGRAM_POINT_SIZE);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
 
     glUseProgram(pShader);
     glBindVertexArray(VAO);
@@ -177,7 +171,7 @@ int main() {
         if(step) { doStep(VBO); }
 
         //create new frame
-        glDrawElements(GL_TRIANGLES, sizeof(vertexIndexes)/sizeof(int), GL_UNSIGNED_INT, 0);
+        glDrawArrays(GL_POINTS, 0, sizeof(matrix)/sizeof(struct Cell));
 
         //display
         glfwSwapBuffers(window);
@@ -232,28 +226,37 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
 }
 
+int loopback(int value, int max) {
+    if (value > max) return value - max - 1;
+    if (value < 0) return max + value + 1;
+    return value;
+}
+
 //tells wether a cell should be alive or not next gen
-float growth(unsigned int x, unsigned int y) {
+float growth(int x, int y) {    
     float sum = 0.f;
     for (int i = x-1; i <= x+1; ++i) {
         for (int j = y-1; j <= y+1; ++j) {
-            if (i < 0 || i >= MATRIXWIDTH || j < 0 || j >= MATRIXHEIGTH || (i == x && j == y)) { continue; }
-            sum += matrix[i][j].oldState;
+            if (i == x && j == y) { continue; }
+            sum += matrix[loopback(i, MATRIXWIDTH-1)][loopback(j, MATRIXHEIGTH-1)].oldState;
         }
     }
-    sum /= 8.f;
+    //sum /= 8.f;
+    /*
     float a = 2.f;
     float b = .375f;
     float c = .075f;
     float d = -1.f;
-    float res = a * expf(-powf(sum-b, 2)/(2*powf(c, 2)))+d;
+    float res = a * expf(-powf(sum-b, 2)/(2*powf(c, 2)))+d;*/
     // DEBUG : printf("%f => %f\n", sum, res);
-    return res;
+    if (sum >= 2.9f && sum <= 3.1f) { return 1.f; }
+    if (sum >= 2.f && sum <= 3.f) { return 0.f; }
+    return -1.f;
 }
 
 void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
-    int x = (int)(xpos/CELLSIZE/MATRIXWIDTH*(MATRIXWIDTH-1));
-    int y = (int)(ypos/CELLSIZE/MATRIXHEIGTH*(MATRIXHEIGTH-1));
+    int x = (int)(xpos/CELLSIZE/MATRIXWIDTH*(MATRIXWIDTH));
+    int y = (int)(ypos/CELLSIZE/MATRIXHEIGTH*(MATRIXHEIGTH));
     float value = matrix[(int)(x)][(int)(y)].oldState;
     char title[255];
     snprintf(title, 255, "TIPE SIM - Cell's value : %f", value);
