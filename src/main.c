@@ -1,3 +1,9 @@
+/*  Written by BAILLOUX Thomas and BAZIN Olivier    */
+
+
+/********************** PREPROCESSOR **********************/
+
+//LIBS
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
@@ -13,8 +19,11 @@
 #define STR_(X) #X
 #define STR(X) STR_(X)
 #define KERNELRAD 13.0f
-#define SHOWKERNEL
 #define DT .1f
+
+
+//#define SHOWKERNEL
+
 
 #ifdef SHOWKERNEL
 #undef MATRIXWIDTH
@@ -25,6 +34,8 @@
 #define CELLSIZE 10
 #endif
 
+
+//DEFS
 struct Cell;
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void cursor_position_callback(GLFWwindow* window, double xpos, double ypos);
@@ -36,6 +47,8 @@ float neighbourSum(int x, int y);
 void genKernel();
 float kernelF(float radius);
 
+
+/********************** C **********************/
 struct Cell {
     float x, y;
     float state, oldState;
@@ -75,12 +88,16 @@ bool rpress;
 bool dstep = false;
 bool dpress;
 
+//useless functions to use with gdb : 'b debug'
 void debug(){ float r = 3; r += 5; return; }
 
+
+/************************* MAIN  *************************/
 int main() {
 
     genKernel();
 
+    //init the matrix with random values
     srand(time(0));
     for(unsigned int i = 0; i < MATRIXWIDTH; ++i) {
         for(unsigned int j = 0; j < MATRIXHEIGTH; ++j) {
@@ -95,8 +112,6 @@ int main() {
 #endif
         }
     }
-
-    debug();
 
     // glfw init
     glfwInit();
@@ -122,16 +137,15 @@ int main() {
         return -1;
     }
 
-    //buffers init
-    unsigned int VAO, VBO, vShader, fShader, pShader;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
+    //shaders init
+    unsigned int vShader, fShader, pShader;
     vShader = glCreateShader(GL_VERTEX_SHADER);
     fShader = glCreateShader(GL_FRAGMENT_SHADER);
     pShader = glCreateProgram();
     int success;
     char infoLog[512];
 
+    //vShader compile
     glShaderSource(vShader, 1, &vShaderP, NULL);
     glCompileShader(vShader);
     glGetShaderiv(vShader, GL_COMPILE_STATUS, &success);
@@ -140,6 +154,7 @@ int main() {
         printf("ERROR::SHADER::VERTEX::COMPILATION_FAILED\n%s", infoLog);
     }
 
+    //fShader compile
     glShaderSource(fShader, 1, &fShaderP, NULL);
     glCompileShader(fShader);
     glGetShaderiv(fShader, GL_COMPILE_STATUS, &success);
@@ -148,44 +163,39 @@ int main() {
         printf("ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n%s", infoLog);
     }
 
+    //shader linking
     glAttachShader(pShader, vShader);
     glAttachShader(pShader, fShader);
     glLinkProgram(pShader);
-
     glGetProgramiv(pShader, GL_LINK_STATUS, &success);
     if(!success) {
         glGetProgramInfoLog(pShader, 512, NULL, infoLog);
         printf("ERROR::SHADER::PROGRAM::LINKING_FAILED\n%s", infoLog);
     }
 
-    
+    //shader cleanup
     glDeleteShader(vShader);
     glDeleteShader(fShader); 
 
-
+    //buffers init
+    unsigned int VAO, VBO;
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
     glBindVertexArray(VAO);
 
+    //send matrix data to gpu to display
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(matrix), &matrix[0][0], GL_DYNAMIC_DRAW);
-
-    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(struct Cell), (void*)0);
+    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(struct Cell), (void*)0); //this is here to tell the gpu how to manage the given data
     glEnableVertexAttribArray(0);
 
-
+    //buffer cleanup
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    // remember: do NOT unbind the EBO while a VAO is active as the bound element buffer object IS stored in the VAO; keep the EBO bound.
-    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-    // You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
-    // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
     glBindVertexArray(0);
 
-
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    //setup opengl to display
     glEnable(GL_PROGRAM_POINT_SIZE);
     glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
-
     glUseProgram(pShader);
     glBindVertexArray(VAO);
 
@@ -193,6 +203,8 @@ int main() {
     while (!glfwWindowShouldClose(window)) {
         lastFrameTime = glfwGetTime();
         now = glfwGetTime();
+
+        //fps cap
         while ((now - lastFrameTime) < fpsMax) { now = glfwGetTime(); }
 
         processInput(window, VBO);
@@ -213,6 +225,10 @@ int main() {
     glfwTerminate();
     return 0;
 }
+
+
+/************************* FUNCTIONS  *************************/
+
 
 //input handling
 void processInput(GLFWwindow *window, unsigned int VBO) {
@@ -258,10 +274,11 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
 }
 
-int loopback(int value, int max) {
-    if (value > max) return value - max - 1;
-    if (value < 0) return max + value + 1;
-    return value;
+//calculate a new index as if the arrays were looping end <=> start
+int loopback(int index, int len) {
+    if (index > len) return index - len - 1;
+    if (index < 0) return len + index + 1;
+    return index;
 }
 
 //tells wether a cell should be alive or not next gen
@@ -275,13 +292,10 @@ float growth(int x, int y) {
     float d = -1.f;
     float res = a * expf(-(sum-b)*(sum-b)/(2*c*c))+d;
 
-    /* ORIGINAL GOL
-    if (sum >= 2.9f && sum <= 3.1f) { return 1.f; }
-    if (sum >= 2.f && sum <= 3.f) { return 0.f; }
-    */
     return res*DT;
 }
 
+//calculates the neighbour sum ponderated by their kernel value relative the the cell in (x,y)
 float neighbourSum(int x, int y) {
     float sum = .0f;
     float kSum = .0f;
@@ -291,10 +305,10 @@ float neighbourSum(int x, int y) {
             sum += kernel[i-x+(int)KERNELRAD][j-y+(int)KERNELRAD] * matrix[loopback(i, MATRIXWIDTH-1)][loopback(j, MATRIXHEIGTH-1)].oldState;
         }
     }
-    //printf("%f/%f ", sum, kSum);
     return sum/kSum;
 }
 
+//generates the kernel matrix, containing the weight of each cells in the neighbour sum
 void genKernel() {
     for (int i = -KERNELRAD ; i <= KERNELRAD ; ++i){
         for (int j = -KERNELRAD ; j <= KERNELRAD ; ++j) {
@@ -305,10 +319,12 @@ void genKernel() {
     }
 }
 
+//The function to apply to a cell's radius to get its kernel factor
 float kernelF(float radius) {
     return expf(4*(1-1/(4*radius*(1-radius))));
 }
 
+//for debugging purposes, displays the hoovered cell's value
 void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
     int x = (int)(xpos/CELLSIZE/MATRIXWIDTH*(MATRIXWIDTH));
     int y = (int)(ypos/CELLSIZE/MATRIXHEIGTH*(MATRIXHEIGTH));
@@ -318,7 +334,9 @@ void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
     glfwSetWindowTitle(window, title);
 }
 
+//simulation step
 void doStep(unsigned int VBO) {
+    //calculate state from oldState
     for(unsigned int i = 0; i < MATRIXWIDTH; ++i) {
         for(unsigned int j = 0; j < MATRIXHEIGTH; ++j) {
             //DEBUG printf("%f => ", matrix[i][j].state);
@@ -329,11 +347,13 @@ void doStep(unsigned int VBO) {
             //DEBUG printf("%f\n", matrix[i][j].state);
         }
     }
+    //switch them
     for(unsigned int i = 0; i < MATRIXWIDTH; ++i) {
         for(unsigned int j = 0; j < MATRIXHEIGTH; ++j) {
             matrix[i][j].oldState = matrix[i][j].state;
         }
     }
+    //send data to gpu to display
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(matrix), &matrix[0][0], GL_DYNAMIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
