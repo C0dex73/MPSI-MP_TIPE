@@ -7,11 +7,12 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
-#define MATRIXWIDTH 1920/2
-#define MATRIXHEIGTH 505
+#define MATRIXWIDTH 200
+#define MATRIXHEIGTH 200
 #define CELLSIZE 2
 #define STR_(X) #X
 #define STR(X) STR_(X)
+#define KERNELRAD 13.0f
 
 struct Cell;
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -20,6 +21,9 @@ void processInput(GLFWwindow *window, unsigned int VBO);
 float growth(int x, int y);
 void doStep(unsigned int VBO);
 int loopback(int value, int max);
+float neighbourSum(int x, int y);
+void genKernel();
+float kernelF(float radius);
 
 struct Cell {
     float x, y;
@@ -49,13 +53,20 @@ const char *fShaderP =
 "}\n\0";
 
 struct Cell matrix[MATRIXWIDTH][MATRIXHEIGTH];
+float kernel[2*(int)KERNELRAD+1][2*(int)KERNELRAD+1];
 
 double now, deltaTime, lastFrameTime;
-const double fpsMax = 60.f;
+const double fpsMax = 1/60.f;
 bool step;
 bool rpress;
+bool dstep = false;
+
+void debug(){ float r = 3; r += 5; return; }
 
 int main() {
+
+    genKernel();
+
     srand(time(0));
     for(unsigned int i = 0; i < MATRIXWIDTH; ++i) {
         for(unsigned int j = 0; j < MATRIXHEIGTH; ++j) {
@@ -188,18 +199,17 @@ int main() {
 //input handling
 void processInput(GLFWwindow *window, unsigned int VBO) {
 
-    step = false;
-
     //ESC to close window
     if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, true);
     }
 
     //SPACE to play-pause
-    if(glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-        step = true;
+    if(glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && step == dstep) {
+        dstep =  !dstep;
     }
 
+    step = dstep;
     //RIGHT ARROW to step
     bool nrpress = glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS;
     if(nrpress && !rpress) {
@@ -234,24 +244,48 @@ int loopback(int value, int max) {
 
 //tells wether a cell should be alive or not next gen
 float growth(int x, int y) {    
-    float sum = 0.f;
-    for (int i = x-1; i <= x+1; ++i) {
-        for (int j = y-1; j <= y+1; ++j) {
-            if (i == x && j == y) { continue; }
-            sum += matrix[loopback(i, MATRIXWIDTH-1)][loopback(j, MATRIXHEIGTH-1)].oldState;
-        }
-    }
-    //sum /= 8.f;
-    /*
+    float sum = neighbourSum(x, y);
+
+    //GAUSSIAN
     float a = 2.f;
-    float b = .375f;
-    float c = .075f;
+    float b = .3f;
+    float c = .13f;
     float d = -1.f;
-    float res = a * expf(-powf(sum-b, 2)/(2*powf(c, 2)))+d;*/
-    // DEBUG : printf("%f => %f\n", sum, res);
+    float res = a * expf(-(sum-b)*(sum-b)/(2*c*c))+d;
+
+    /* ORIGINAL GOL
     if (sum >= 2.9f && sum <= 3.1f) { return 1.f; }
     if (sum >= 2.f && sum <= 3.f) { return 0.f; }
-    return -1.f;
+    */
+    return res;
+}
+
+float neighbourSum(int x, int y) {
+    float sum = .0f;
+    float kSum = .0f;
+    for (int i = x-KERNELRAD ; i <= x+KERNELRAD ; ++i){
+        for (int j = y-KERNELRAD ; j <= y + KERNELRAD ; ++j) {
+            kSum += kernel[i-x+(int)KERNELRAD][j-y+(int)KERNELRAD];
+            sum += kernel[i-x+(int)KERNELRAD][j-y+(int)KERNELRAD] * matrix[loopback(i, MATRIXWIDTH-1)][loopback(j, MATRIXHEIGTH-1)].oldState;
+        }
+    }
+    //printf("%f/%f ", sum, kSum);
+    return sum/kSum;
+}
+
+void genKernel() {
+    for (int i = -KERNELRAD ; i <= KERNELRAD ; ++i){
+        for (int j = -KERNELRAD ; j <= KERNELRAD ; ++j) {
+            float r = sqrtf(i*i+j+j)/KERNELRAD;
+            if (r > 1 || r == 0) { continue; }
+            kernel[i+(int)KERNELRAD][j+(int)KERNELRAD] = kernelF(r);
+        }
+    }
+}
+
+float kernelF(float radius) {
+    if (radius > .25f && radius < .75f) { return 1.f; }
+    else { return 0.f; }
 }
 
 void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
