@@ -13,6 +13,16 @@
 #define STR_(X) #X
 #define STR(X) STR_(X)
 #define KERNELRAD 13.0f
+//#define SHOWKERNEL
+
+#ifdef SHOWKERNEL
+#undef MATRIXWIDTH
+#define MATRIXWIDTH (2*(int)KERNELRAD+1)
+#undef MATRIXHEIGTH
+#define MATRIXHEIGTH (2*(int)KERNELRAD+1)
+#undef CELLSIZE
+#define CELLSIZE 10
+#endif
 
 struct Cell;
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -49,7 +59,11 @@ const char *fShaderP =
 "flat in float cellState;\n"
 "void main()\n"
 "{\n"
+#ifdef SHOWKERNEL
+"   FragColor = vec4(cellState*1.0f, cellState*0.0f, cellState*0.0f, 1.0f);\n"
+#else
 "   FragColor = vec4(cellState*1.0f, cellState*1.0f, cellState*1.0f, 1.0f);\n"
+#endif
 "}\n\0";
 
 struct Cell matrix[MATRIXWIDTH][MATRIXHEIGTH];
@@ -60,6 +74,7 @@ const double fpsMax = 1/60.f;
 bool step;
 bool rpress;
 bool dstep = false;
+bool dpress;
 
 void debug(){ float r = 3; r += 5; return; }
 
@@ -72,10 +87,17 @@ int main() {
         for(unsigned int j = 0; j < MATRIXHEIGTH; ++j) {
             matrix[i][j].x = 2.f*(i+.5f)/(MATRIXWIDTH)-1.f;
             matrix[i][j].y = 1.f-2.f*(j+.5f)/(MATRIXHEIGTH);
+#ifdef SHOWKERNEL
+            matrix[i][j].oldState = kernel[i][j];
+            matrix[i][j].state = kernel[i][j];
+#else
             matrix[i][j].oldState = ((float)rand()/(float)(RAND_MAX));
             matrix[i][j].state = ((float)rand()/(float)(RAND_MAX));
+#endif
         }
     }
+
+    debug();
 
     // glfw init
     glfwInit();
@@ -199,15 +221,19 @@ int main() {
 //input handling
 void processInput(GLFWwindow *window, unsigned int VBO) {
 
+    step = dstep;
+
     //ESC to close window
     if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, true);
     }
 
     //SPACE to play-pause
-    if(glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && step == dstep) {
-        dstep =  !dstep;
+    bool ndpress = glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS;
+    if(ndpress && !dpress) {
+        dstep = !dstep;
     }
+    dpress = ndpress;
 
     step = dstep;
     //RIGHT ARROW to step
@@ -276,7 +302,7 @@ float neighbourSum(int x, int y) {
 void genKernel() {
     for (int i = -KERNELRAD ; i <= KERNELRAD ; ++i){
         for (int j = -KERNELRAD ; j <= KERNELRAD ; ++j) {
-            float r = sqrtf(i*i+j+j)/KERNELRAD;
+            float r = sqrtf(i*i+j*j)/KERNELRAD;
             if (r > 1 || r == 0) { continue; }
             kernel[i+(int)KERNELRAD][j+(int)KERNELRAD] = kernelF(r);
         }
