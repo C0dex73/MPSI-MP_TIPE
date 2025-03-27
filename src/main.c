@@ -7,13 +7,14 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
-#define MATRIXWIDTH 200
-#define MATRIXHEIGTH 200
-#define CELLSIZE 2
+#define MATRIXWIDTH 120
+#define MATRIXHEIGTH 120
+#define CELLSIZE 5
 #define STR_(X) #X
 #define STR(X) STR_(X)
 #define KERNELRAD 13.0f
 //#define SHOWKERNEL
+#define DT .1f
 
 #ifdef SHOWKERNEL
 #undef MATRIXWIDTH
@@ -37,32 +38,30 @@ float kernelF(float radius);
 
 struct Cell {
     float x, y;
-    float state;
-    float oldState;
+    float state, oldState;
 };
 
 const char *vShaderP = 
 "#version 450 core\n"
-"layout (location = 0) in vec2 aPos;\n"
-"layout (location = 1) in float state;\n"
-"flat out float cellState;\n"
+"layout (location = 0) in vec4 cell;\n"
+"flat out vec2 cellState;\n"
 "void main()\n"
 "{\n"
-"   cellState = state;\n"
-"   gl_Position = vec4(aPos.x, aPos.y, 0.0, 1.0);\n"
+"   cellState = vec2(cell.z, cell.w);\n"
+"   gl_Position = vec4(cell.x, cell.y, 0.0, 1.0);\n"
 "   gl_PointSize = "STR(CELLSIZE-1)";\n"
 "}\0";
 
 const char *fShaderP = 
 "#version 450 core\n"
 "out vec4 FragColor;\n"
-"flat in float cellState;\n"
+"flat in vec2 cellState;\n"
 "void main()\n"
 "{\n"
 #ifdef SHOWKERNEL
 "   FragColor = vec4(cellState*1.0f, cellState*0.0f, cellState*0.0f, 1.0f);\n"
 #else
-"   FragColor = vec4(cellState*1.0f, cellState*1.0f, cellState*1.0f, 1.0f);\n"
+"   FragColor = vec4(cellState.y*cellState.x*1.0f, cellState.x*1.0f, cellState.x*1.0f, 1.0f);\n"
 #endif
 "}\n\0";
 
@@ -169,11 +168,8 @@ int main() {
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(matrix), &matrix[0][0], GL_DYNAMIC_DRAW);
 
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(struct Cell), (void*)0);
+    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(struct Cell), (void*)0);
     glEnableVertexAttribArray(0);
-
-    glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, sizeof(struct Cell), (void*)(offsetof(struct Cell, oldState)));
-    glEnableVertexAttribArray(1);
 
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -269,13 +265,13 @@ int loopback(int value, int max) {
 }
 
 //tells wether a cell should be alive or not next gen
-float growth(int x, int y) {    
+float growth(int x, int y) {
     float sum = neighbourSum(x, y);
 
     //GAUSSIAN
     float a = 2.f;
-    float b = .3f;
-    float c = .13f;
+    float b = .15f;
+    float c = .017f;
     float d = -1.f;
     float res = a * expf(-(sum-b)*(sum-b)/(2*c*c))+d;
 
@@ -283,7 +279,7 @@ float growth(int x, int y) {
     if (sum >= 2.9f && sum <= 3.1f) { return 1.f; }
     if (sum >= 2.f && sum <= 3.f) { return 0.f; }
     */
-    return res;
+    return res*DT;
 }
 
 float neighbourSum(int x, int y) {
@@ -310,8 +306,7 @@ void genKernel() {
 }
 
 float kernelF(float radius) {
-    if (radius > .25f && radius < .75f) { return 1.f; }
-    else { return 0.f; }
+    return expf(4*(1-1/(4*radius*(1-radius))));
 }
 
 void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
