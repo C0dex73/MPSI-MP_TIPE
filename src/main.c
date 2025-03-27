@@ -13,7 +13,7 @@
 #define STR_(X) #X
 #define STR(X) STR_(X)
 #define KERNELRAD 13.0f
-//#define SHOWKERNEL
+#define SHOWKERNEL
 #define DT .1f
 
 #ifdef SHOWKERNEL
@@ -59,7 +59,7 @@ const char *fShaderP =
 "void main()\n"
 "{\n"
 #ifdef SHOWKERNEL
-"   FragColor = vec4(cellState*1.0f, cellState*0.0f, cellState*0.0f, 1.0f);\n"
+"   FragColor = vec4(cellState.y*1.0f, cellState.y*0.0f, cellState.y*0.0f, 1.0f);\n"
 #else
 "   FragColor = vec4(cellState.y*cellState.x*1.0f, cellState.x*1.0f, cellState.x*1.0f, 1.0f);\n"
 #endif
