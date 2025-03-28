@@ -13,13 +13,16 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
-#define MATRIXWIDTH 120
-#define MATRIXHEIGTH 120
-#define CELLSIZE 5
+
+// presets : 120x120|5  /   960x505|2
+#define MATRIXWIDTH 500
+#define MATRIXHEIGTH 500
+#define CELLSIZE 2
 #define STR_(X) #X
 #define STR(X) STR_(X)
 #define KERNELRAD 13.0f
 #define DT .1f
+#define RDMDENSITY 5
 
 
 //#define SHOWKERNEL
@@ -259,8 +262,18 @@ void processInput(GLFWwindow *window, unsigned int VBO) {
     if (glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS) {
         for(unsigned int i = 0; i < MATRIXWIDTH; ++i) {
             for(unsigned int j = 0; j < MATRIXHEIGTH; ++j) {
-                matrix[i][j].state = ((float)rand()/(float)(RAND_MAX));;
-                matrix[i][j].oldState = ((float)rand()/(float)(RAND_MAX));;
+                matrix[i][j].oldState = .0f;
+                matrix[i][j].state = .0f;
+            }
+        }
+
+        for(unsigned int i = 0; i <= MATRIXWIDTH/(KERNELRAD*RDMDENSITY); ++i) {
+            unsigned int x = ((float)rand()/(float)(RAND_MAX))*((float)MATRIXWIDTH), y = ((float)rand()/(float)(RAND_MAX))*((float)MATRIXHEIGTH);
+            for(int i = x-KERNELRAD; i <= x+KERNELRAD; ++i) {
+                for (int j = y-KERNELRAD ; j <= y+KERNELRAD ; ++j) {
+                    matrix[loopback(i, MATRIXWIDTH-1)][loopback(j, MATRIXHEIGTH-1)].state = ((float)rand()/(float)(RAND_MAX));
+                    matrix[loopback(i, MATRIXWIDTH-1)][loopback(j, MATRIXHEIGTH-1)].oldState = ((float)rand()/(float)(RAND_MAX));
+                }
             }
         }
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -328,9 +341,8 @@ float kernelF(float radius) {
 void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
     int x = (int)(xpos/CELLSIZE/MATRIXWIDTH*(MATRIXWIDTH));
     int y = (int)(ypos/CELLSIZE/MATRIXHEIGTH*(MATRIXHEIGTH));
-    float value = matrix[(int)(x)][(int)(y)].oldState;
     char title[255];
-    snprintf(title, 255, "TIPE SIM - Cell's value : %f", value);
+    snprintf(title, 255, "TIPE SIM - Cell's value : %f | dV : %f", matrix[(int)(x)][(int)(y)].oldState, matrix[(int)(x)][(int)(y)].oldState);
     glfwSetWindowTitle(window, title);
 }
 
