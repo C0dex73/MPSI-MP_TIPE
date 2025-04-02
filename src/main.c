@@ -1,87 +1,29 @@
-/*  Written by BAILLOUX Thomas and BAZIN Olivier    */
-
-
-/********************** PREPROCESSOR **********************/
-
 //LIBS
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
-#include <stdlib.h>
-#include <time.h>
 #include <math.h>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-
-
-// presets : 120x120|5  /   960x505|2
-#define MATRIXWIDTH 500
-#define MATRIXHEIGTH 500
-#define CELLSIZE 2
-#define STR_(X) #X
-#define STR(X) STR_(X)
-#define KERNELRAD 13.0f
-#define DT .1f
-#define RDMDENSITY 5
-
-
-//#define SHOWKERNEL
-
-
-#ifdef SHOWKERNEL
-#undef MATRIXWIDTH
-#define MATRIXWIDTH (2*(int)KERNELRAD+1)
-#undef MATRIXHEIGTH
-#define MATRIXHEIGTH (2*(int)KERNELRAD+1)
-#undef CELLSIZE
-#define CELLSIZE 10
-#endif
+#include "config.h"
+#include "shaders.h"
+#include "matrix.h"
+#include "random.h"
+#include "utils.h"
 
 
 //DEFS
-struct Cell;
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void cursor_position_callback(GLFWwindow* window, double xpos, double ypos);
 void processInput(GLFWwindow *window, unsigned int VBO);
 float growth(int x, int y);
 void doStep(unsigned int VBO);
-int loopback(int value, int max);
 float neighbourSum(int x, int y);
 void genKernel();
 float kernelF(float radius);
 
 
 /********************** C **********************/
-struct Cell {
-    float x, y;
-    float state, oldState;
-};
-
-const char *vShaderP = 
-"#version 450 core\n"
-"layout (location = 0) in vec4 cell;\n"
-"flat out vec2 cellState;\n"
-"void main()\n"
-"{\n"
-"   cellState = vec2(cell.z, cell.w);\n"
-"   gl_Position = vec4(cell.x, cell.y, 0.0, 1.0);\n"
-"   gl_PointSize = "STR(CELLSIZE-1)";\n"
-"}\0";
-
-const char *fShaderP = 
-"#version 450 core\n"
-"out vec4 FragColor;\n"
-"flat in vec2 cellState;\n"
-"void main()\n"
-"{\n"
-#ifdef SHOWKERNEL
-"   FragColor = vec4(cellState.y*1.0f, cellState.y*0.0f, cellState.y*0.0f, 1.0f);\n"
-#else
-"   FragColor = vec4(cellState.y*cellState.x*1.0f, cellState.x*1.0f, cellState.x*1.0f, 1.0f);\n"
-#endif
-"}\n\0";
-
-struct Cell matrix[MATRIXWIDTH][MATRIXHEIGTH];
 float kernel[2*(int)KERNELRAD+1][2*(int)KERNELRAD+1];
 
 double now, deltaTime, lastFrameTime;
@@ -96,25 +38,30 @@ void debug(){ float r = 3; r += 5; return; }
 
 
 /************************* MAIN  *************************/
+#ifndef TIPE_SHOWKERNEL
 int main() {
 
     genKernel();
+    initRandom();
+
+    debug();
 
     //init the matrix with random values
-    srand(time(0));
+#ifdef SHOWKERNEL
     for(unsigned int i = 0; i < MATRIXWIDTH; ++i) {
         for(unsigned int j = 0; j < MATRIXHEIGTH; ++j) {
             matrix[i][j].x = 2.f*(i+.5f)/(MATRIXWIDTH)-1.f;
             matrix[i][j].y = 1.f-2.f*(j+.5f)/(MATRIXHEIGTH);
-#ifdef SHOWKERNEL
+
             matrix[i][j].oldState = kernel[i][j];
             matrix[i][j].state = kernel[i][j];
-#else
-            matrix[i][j].oldState = ((float)rand()/(float)(RAND_MAX));
-            matrix[i][j].state = ((float)rand()/(float)(RAND_MAX));
-#endif
         }
     }
+#else
+    randomizeMatrix();
+#endif
+
+    debug();
 
     // glfw init
     glfwInit();
@@ -228,6 +175,7 @@ int main() {
     glfwTerminate();
     return 0;
 }
+#endif
 
 
 /************************* FUNCTIONS  *************************/
@@ -260,22 +208,9 @@ void processInput(GLFWwindow *window, unsigned int VBO) {
 
     //ENTER to randomize
     if (glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS) {
-        for(unsigned int i = 0; i < MATRIXWIDTH; ++i) {
-            for(unsigned int j = 0; j < MATRIXHEIGTH; ++j) {
-                matrix[i][j].oldState = .0f;
-                matrix[i][j].state = .0f;
-            }
-        }
-
-        for(unsigned int i = 0; i <= MATRIXWIDTH/(KERNELRAD*RDMDENSITY); ++i) {
-            unsigned int x = ((float)rand()/(float)(RAND_MAX))*((float)MATRIXWIDTH), y = ((float)rand()/(float)(RAND_MAX))*((float)MATRIXHEIGTH);
-            for(int i = x-KERNELRAD; i <= x+KERNELRAD; ++i) {
-                for (int j = y-KERNELRAD ; j <= y+KERNELRAD ; ++j) {
-                    matrix[loopback(i, MATRIXWIDTH-1)][loopback(j, MATRIXHEIGTH-1)].state = ((float)rand()/(float)(RAND_MAX));
-                    matrix[loopback(i, MATRIXWIDTH-1)][loopback(j, MATRIXHEIGTH-1)].oldState = ((float)rand()/(float)(RAND_MAX));
-                }
-            }
-        }
+        clearMatrix();
+        randomizeMatrix();
+        
         glBindBuffer(GL_ARRAY_BUFFER, VBO);
         glBufferData(GL_ARRAY_BUFFER, sizeof(matrix), &matrix[0][0], GL_DYNAMIC_DRAW);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -285,13 +220,6 @@ void processInput(GLFWwindow *window, unsigned int VBO) {
 //when the window size changes, update glad config to new width and height
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
-}
-
-//calculate a new index as if the arrays were looping end <=> start
-int loopback(int index, int len) {
-    if (index > len) return index - len - 1;
-    if (index < 0) return len + index + 1;
-    return index;
 }
 
 //tells wether a cell should be alive or not next gen
@@ -330,11 +258,6 @@ void genKernel() {
             kernel[i+(int)KERNELRAD][j+(int)KERNELRAD] = kernelF(r);
         }
     }
-}
-
-//The function to apply to a cell's radius to get its kernel factor
-float kernelF(float radius) {
-    return expf(4*(1-1/(4*radius*(1-radius))));
 }
 
 //for debugging purposes, displays the hoovered cell's value
