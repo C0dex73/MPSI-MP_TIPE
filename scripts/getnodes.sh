@@ -27,7 +27,7 @@ esac
 
 for dir in $@; do
     if [ $dir = $1 ]; then continue; fi
-    if ! [ -d $dir ]; then
+    if ! [ -d $dir ] || ! [ "$(ls -A $dir)" ]; then
         echo "Warning: directory $dir does not exists, skipping..."
         continue
     fi
