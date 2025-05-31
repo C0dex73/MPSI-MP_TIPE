@@ -48,11 +48,7 @@ const char *fShaderP =
 "flat in vec2 cellState;\n"
 "void main()\n"
 "{\n"
-#ifdef SHOWKERNEL
-"   FragColor = vec4(cellState.y*1.0f, cellState.y*0.0f, cellState.y*0.0f, 1.0f);\n"
-#else
 "   FragColor = vec4(cellState.y*cellState.x*1.0f, cellState.x*1.0f, cellState.x*1.0f, 1.0f);\n"
-#endif
 "}\n\0";
 
 double now, deltaTime, lastFrameTime;
@@ -194,18 +190,8 @@ int init() {
     dim = CreateDimension(255, 255, 3, 13, .1f, 0.5f);
 
     //init the matrix with random values
-    srand(time(0));
-    #ifdef SHOWKERNEL
-    for(unsigned int i = 0; i < dim.MATRIXWIDTH; ++i) {
-        for(unsigned int j = 0; j < dim.MATRIXHEIGTH; ++j) {
-            dim.matrix[i+j*dim.MATRIXWIDTH].oldState = dim.kernel[i+j*(2*dim.KERNELRAD+1)];
-            dim.matrix[i+j*dim.MATRIXWIDTH].state = dim.kernel[i+j*(2*dim.KERNELRAD+1)];
-        }
-    }
-    #else
     randomizeDimensionByKernel(dim);
-    #endif
-
+    
     // glfw init
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
