@@ -1,59 +1,122 @@
-EXEC:=app
+#enables the makefile secondary expansion
+.SECONDEXPANSION:
 
-#COMPILER
-C:=gcc
-CFLAGS:=
-LFLAGS:=-I./src/ -lGL -lglfw -lm
-DFLAGS:=-g -Wall
-BFLAGS:=-s
+#~ VARIABLES
 
-#ARCHITECTURE
-BIN_DIR:=bin
-OBJ_EXT:=o
-BUILD_DIR:=build
-SRC_DIR:=src
+#^ constants
+BIN_DIR:=./bin
+DIST_DIR:=./dist
+SRC_DIR:=./src
 SRC_EXT:=c
-LIB_DIR:=lib
-SHADER_DIR:=$(SRC_DIR)
-SHADER_EXT:=glsl
+HDR_EXT:=h
+OBJ_EXT:=o
+DEP_FILE:=.dep
+C:=gcc
+NODE_ARGS_FILE:=$(C).flags
 
+DEBUG_FLAGS:=-g3
+BUILD_FLAGS:=-s -O3
 
-#PROCESSED VARS
-SRC_FILES:=$(wildcard ./$(SRC_DIR)/*.$(SRC_EXT))
-SHADER_FILES:=$(wildcard ./$(SHADER_DIR)/*.$(SHADER_EXT))
-OBJ_FILES:=$(foreach file,$(filter-out $(wildcard ./$(LIB_DIR)/*.$(OBJ_EXT)), $(wildcard ./$(LIB_DIR)/*)),$(file:./$(LIB_DIR)/%=./$(BIN_DIR)/%.$(OBJ_EXT))) $(foreach file,$(SRC_FILES),$(file:./$(SRC_DIR)/%.$(SRC_EXT)=./$(BIN_DIR)/%.$(SRC_EXT).$(OBJ_EXT)))
+#^ System dependent variables
+LIB_EXT:=
+DOTEXE:=
+IMP_LIB_EXT:=
+CFLAGS:=
+ifeq ($(OS),Windows_NT)
+	DOTEXE+=.exe
+	LIB_EXT+=dll
+	IMP_LIB_EXT+=lib
+	CFLAGS+=-mwindows
+else
+	LIB_EXT+=so
+	DOTEXE+=
+	IMP_LIB_EXT+=a
+endif
 
-#RULES
-.PHONY: all reset clean
-.PRECIOUS: $(foreach file,$(filter-out $(wildcard ./$(LIB_DIR)/*.$(OBJ_EXT)), $(wildcard ./$(LIB_DIR)/*)),$(file:%=%.$(OBJ_EXT)))
+#^ Command specific variables
 
-all: $(EXEC)_d
-	./$(BIN_DIR)/$(EXEC)
+ifeq ($(firstword $(MAKECMDGOALS)),build)
+	CFLAGS+=$(BUILD_FLAGS)
+else
+	CFLAGS+=$(DEBUG_FLAGS)
+endif
 
-reset:
-	rm -rf ./$(BIN_DIR)/
+#^ Processed variables
+
+EXEC_NODES:=$(shell ./scripts/getnodes.sh EXEC $(SRC_DIR))
+LIB_NODES:=$(shell ./scripts/getnodes.sh LIB $(SRC_DIR))
+
+EXECS:=$(foreach node,$(EXEC_NODES),$(BIN_DIR)/$(shell basename $(node))$(DOTEXE))
+LIBS:=$(foreach node,$(LIB_NODES),$(BIN_DIR)/$(shell basename $(node)).$(LIB_EXT))
+
+DEP_FILES:=$(EXEC_NODES:%/=%/$(DEP_FILE)) $(LIB_NODES:%/=%/$(DEP_FILE))
+
+INCLUDE_DIRS_DIRECTIVE:=$(foreach node,$(LIB_NODES) $(EXEC_NODES),-I$(node))
+
+#~ MAIN RULES
+.PHONY: all reset debug eod_%_eod
+
+all: $(DEP_FILES) $(EXECS)
+
+debug: 
+	@echo no debug script in debug recipe
 
 clean:
-	rm ./$(BIN_DIR)/*.$(OBJ_EXT)
+	rm -f $(BIN_DIR)/*.$(OBJ_EXT)
 
-$(EXEC)_d: bin_dir $(OBJ_FILES)
-	$(C) $(LFLAGS) $(DFLAGS) -o ./$(BIN_DIR)/$(EXEC) $(filter-out bin_dir, $^)
+reset:
+	rm -f $(BIN_DIR)/* !.gitkeep
+	rm -f $(DEP_FILES)
 
-./$(BIN_DIR)/%.$(OBJ_EXT): ./$(SRC_DIR)/%
-	$(C) $(CFLAGS) $(DFLAGS) -c -o $@ $<
+_buildreset:
+	rm -f $(DIST_DIR)/*$(DOTEXE)
+	rm -f $(DIST_DIR)/*.$(LIB_EXT)
 
-./$(BIN_DIR)/%: ./$(LIB_DIR)/%
-	cp $< $@
+build: _buildreset reset all clean
+	cp -f $(BIN_DIR)/*$(DOTEXE) $(DIST_DIR)
+	cp -f $(BIN_DIR)/*.$(LIB_EXT) $(DIST_DIR)
 
-./$(LIB_DIR)/%.$(OBJ_EXT): ./$(LIB_DIR)/%
-	$(C) $(CFLAGS) $(DFLAGS) -c -o $@ $<
+$(EXECS): $(BIN_DIR)/%$(DOTEXE): $$(wildcard $(SRC_DIR)/$$*/*.$(SRC_EXT)) $$(wildcard $(SRC_DIR)/$$*/*.$(HDR_EXT)) $$(shell [ "$$(shell cat $(SRC_DIR)/$$*/$(DEP_FILE) 2> /dev/null)" != "" ] && cat $(SRC_DIR)/$$*/$(DEP_FILE) 2> /dev/null || echo "eod_$(SRC_DIR)/$$*/_eod")
+#	@echo ------------- NODE COMPUTING START -------------
+	@echo buliding $@, called $(foreach dep,$^,$(patsubst %$(HDR_EXT),,$(patsubst %$(SRC_EXT),,$(dep))))...
+#	@echo
+	@$(C) -o $@ $(wildcard $(SRC_DIR)/$*/*.$(SRC_EXT)) $(foreach file,$(foreach dep,$^,$(patsubst %$(HDR_EXT),,$(patsubst %$(SRC_EXT),,$(dep)))),$(BIN_DIR)/$(file).$(LIB_EXT).$(IMP_LIB_EXT)) @$(SRC_DIR)/$*/$(NODE_ARGS_FILE) $(INCLUDE_DIRS_DIRECTIVE) $(CFLAGS)
+#	@echo -------------- NODE COMPUTING END --------------
 
-bin_dir:
-	mkdir -p ./$(BIN_DIR)/
+$(LIBS): $(BIN_DIR)/%.$(LIB_EXT): $$(wildcard $(SRC_DIR)/$$*/*.$(SRC_EXT)) $$(wildcard $(SRC_DIR)/$$*/*.$(HDR_EXT)) $$(shell [ "$$(shell cat $(SRC_DIR)/$$*/$(DEP_FILE) 2> /dev/null)" != "" ] && cat $(SRC_DIR)/$$*/$(DEP_FILE) 2> /dev/null || echo "eod_$(SRC_DIR)/$$*/_eod")
+#	@echo ------------- NODE COMPUTING START -------------
+	@echo buliding $@, called $(foreach dep,$^,$(patsubst %$(HDR_EXT),,$(patsubst %$(SRC_EXT),,$(dep))))...
+#	@echo
+	@if [ -d $(SRC_DIR)/$*/bin/ ]; then \
+		cp -f $(SRC_DIR)/$*/bin/$(shell basename $@) $@ ; \
+		cp -f $(SRC_DIR)/$*/bin/$(shell basename $@.$(IMP_LIB_EXT)) $@.$(IMP_LIB_EXT) ; \
+	else \
+		( cd $(SRC_DIR)/$* ; $(C) -c $(foreach file,$(wildcard $(SRC_DIR)/$*/*.$(SRC_EXT)),$(shell basename $(file))) @$(NODE_ARGS_FILE) $(foreach dir,$(INCLUDE_DIRS_DIRECTIVE),$(dir:-I%=-I../../%)) $(CFLAGS)) ; \
+		mv $(SRC_DIR)/$*/$(shell basename $(subst .$(LIB_EXT),.$(OBJ_EXT),$@)) $(subst .$(LIB_EXT),.$(OBJ_EXT),$@) ; \
+		$(C) -shared -o $@ $(subst .$(LIB_EXT),.$(OBJ_EXT),$@) -Wl,--out-implib,$@.$(IMP_LIB_EXT) $(CFLAGS); \
+	fi;
+#	@echo -------------- NODE COMPUTING END --------------
 
-shaders.o: $(SHADER_FILES)
-	ld -r -b binary -o ./$(BUILD_DIR)/shaders.o $(SHADER_FILES)
+#checks for includes in all c files of a node, keep only the ones that correspond to other nodes from the project and write them all in a file
+# also checks if a node is a binary node (binaries are to be downloaded and put in the bin/ folder of the node) and if so, checks if all the required binaries are in it
+$(DEP_FILES): %/$(DEP_FILE): $$(wildcard $$(subst /$(DEP_FILE),,$$@)/*.$(SRC_EXT))
+	@if ! [ -d ./$(dir $@)bin/ ]; then \
+		echo $(filter-out $(shell basename $(basename $@)),$(filter $(foreach node,$(EXEC_NODES) $(LIB_NODES),$(shell basename $(node))),$(foreach file,$(shell grep -sh "#include" . $^ | grep "." | sed 's/#include <//' | sed 's/>//' | sed 's/ //g'),$(basename $(shell basename $(file)))))) > $@ ; \
+	elif ! [ -f ./$(dir $@)bin/dependencies.lnk ]; then \
+			echo "Error, no binary dependencies file nor source code in node $@" ;\
+	else \
+		for f in $$(tail -n+2 ./$(dir $@)bin/dependencies.lnk) ; do\
+			if ! [ -f ./$(dir $@)bin/$$f ]; then \
+				echo "Node $@ is dependent of file ./$(dir $@)bin/$$f which is missing, check the url in ./$(dir $@)bin/dependencies.lnk to download it"; \
+				start $$(head -n 1 ./$(dir $@)bin/dependencies.lnk); \
+				echo "Missing file, exiting..."; \
+				exit 1; \
+			fi \
+		done \
+	fi;
 
-#DEBUG
-debug:
-	echo $(foreach file,$(filter-out $(wildcard ./$(LIB_DIR)/*.$(OBJ_EXT)), $(wildcard ./$(LIB_DIR)/*)),$(file:%=%.$(OBJ_EXT)))
+$(foreach node,$(EXEC_NODES),$(shell basename $(node))): %: $(BIN_DIR)/%$(DOTEXE)
+$(foreach node,$(LIB_NODES),$(shell basename $(node))): %: $(BIN_DIR)/%.$(LIB_EXT) #$(BIN_DIR)/%.$(IMP_LIB_EXT)
+
+$(foreach node,$(EXEC_NODES) $(LIB_NODES),eod_$(node)_eod): %:
+	@echo "$(subst eod_,,$(subst _eod,,$@)) does not have a dependencies (.dep) file, assuming end-of-dep node"

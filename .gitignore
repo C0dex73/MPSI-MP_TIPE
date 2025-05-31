@@ -1,5 +1,26 @@
-/lib/*.o
-/bin/
+#environnement related
 .git/
 .vscode/
-.draft
+
+#binaries
+**.o
+**.dll
+**.lib
+**.a
+**.so
+bin/**
+
+#files generated from makefile
+**.dep
+
+#ignore all dist files except for the static content (all files in subfolders are presumed static content, otherwise specify the concerned files here)
+dist/*
+!dist/*/
+!dist/*/*
+
+#dev folders
+temp/**
+test/**
+#! put test files you want to be shared with others here
+
+!**.gitkeep
