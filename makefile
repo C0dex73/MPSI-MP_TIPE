@@ -43,8 +43,8 @@ endif
 
 #^ Processed variables
 
-EXEC_NODES:=$(shell ./scripts/getnodes.sh EXEC $(SRC_DIR))
-LIB_NODES:=$(shell ./scripts/getnodes.sh LIB $(SRC_DIR))
+EXEC_NODES:=$(shell ./scripts/getnodes.sh -E $(SRC_DIR))
+LIB_NODES:=$(shell ./scripts/getnodes.sh -L $(SRC_DIR))
 
 EXECS:=$(foreach node,$(EXEC_NODES),$(BIN_DIR)/$(shell basename $(node))$(DOTEXE))
 LIBS:=$(foreach node,$(LIB_NODES),$(BIN_DIR)/$(shell basename $(node)).$(LIB_EXT))
@@ -54,7 +54,7 @@ DEP_FILES:=$(EXEC_NODES:%/=%/$(DEP_FILE)) $(LIB_NODES:%/=%/$(DEP_FILE))
 INCLUDE_DIRS_DIRECTIVE:=$(foreach node,$(LIB_NODES) $(EXEC_NODES),-I$(node))
 
 #~ MAIN RULES
-.PHONY: all reset debug eod_%_eod
+.PHONY: all reset debug eod_%_eod node_%
 
 all: $(DEP_FILES) $(EXECS)
 
@@ -76,6 +76,10 @@ build: _buildreset reset all clean
 	cp -f $(BIN_DIR)/*$(DOTEXE) $(DIST_DIR)
 	cp -f $(BIN_DIR)/*.$(LIB_EXT) $(DIST_DIR)
 
+
+#~ NODES SHENANIGANS
+
+#^ executable nodes
 $(EXECS): $(BIN_DIR)/%$(DOTEXE): $$(wildcard $(SRC_DIR)/$$*/*.$(SRC_EXT)) $$(wildcard $(SRC_DIR)/$$*/*.$(HDR_EXT)) $$(shell [ "$$(shell cat $(SRC_DIR)/$$*/$(DEP_FILE) 2> /dev/null)" != "" ] && cat $(SRC_DIR)/$$*/$(DEP_FILE) 2> /dev/null || echo "eod_$(SRC_DIR)/$$*/_eod")
 #	@echo ------------- NODE COMPUTING START -------------
 	@echo buliding $@, called $(foreach dep,$^,$(patsubst %$(HDR_EXT),,$(patsubst %$(SRC_EXT),,$(dep))))...
@@ -83,6 +87,7 @@ $(EXECS): $(BIN_DIR)/%$(DOTEXE): $$(wildcard $(SRC_DIR)/$$*/*.$(SRC_EXT)) $$(wil
 	@$(C) -o $@ $(wildcard $(SRC_DIR)/$*/*.$(SRC_EXT)) $(foreach file,$(foreach dep,$^,$(patsubst %$(HDR_EXT),,$(patsubst %$(SRC_EXT),,$(dep)))),$(BIN_DIR)/$(file).$(LIB_EXT).$(IMP_LIB_EXT)) @$(SRC_DIR)/$*/$(NODE_ARGS_FILE) $(INCLUDE_DIRS_DIRECTIVE) $(CFLAGS)
 #	@echo -------------- NODE COMPUTING END --------------
 
+#^ library/binary nodes
 $(LIBS): $(BIN_DIR)/%.$(LIB_EXT): $$(wildcard $(SRC_DIR)/$$*/*.$(SRC_EXT)) $$(wildcard $(SRC_DIR)/$$*/*.$(HDR_EXT)) $$(shell [ "$$(shell cat $(SRC_DIR)/$$*/$(DEP_FILE) 2> /dev/null)" != "" ] && cat $(SRC_DIR)/$$*/$(DEP_FILE) 2> /dev/null || echo "eod_$(SRC_DIR)/$$*/_eod")
 #	@echo ------------- NODE COMPUTING START -------------
 	@echo buliding $@, called $(foreach dep,$^,$(patsubst %$(HDR_EXT),,$(patsubst %$(SRC_EXT),,$(dep))))...
@@ -97,6 +102,7 @@ $(LIBS): $(BIN_DIR)/%.$(LIB_EXT): $$(wildcard $(SRC_DIR)/$$*/*.$(SRC_EXT)) $$(wi
 	fi;
 #	@echo -------------- NODE COMPUTING END --------------
 
+#^ dependencies files
 #checks for includes in all c files of a node, keep only the ones that correspond to other nodes from the project and write them all in a file
 # also checks if a node is a binary node (binaries are to be downloaded and put in the bin/ folder of the node) and if so, checks if all the required binaries are in it
 $(DEP_FILES): %/$(DEP_FILE): $$(wildcard $$(subst /$(DEP_FILE),,$$@)/*.$(SRC_EXT))
@@ -115,8 +121,23 @@ $(DEP_FILES): %/$(DEP_FILE): $$(wildcard $$(subst /$(DEP_FILE),,$$@)/*.$(SRC_EXT
 		done \
 	fi;
 
+#^ Node to file
 $(foreach node,$(EXEC_NODES),$(shell basename $(node))): %: $(BIN_DIR)/%$(DOTEXE)
 $(foreach node,$(LIB_NODES),$(shell basename $(node))): %: $(BIN_DIR)/%.$(LIB_EXT) #$(BIN_DIR)/%.$(IMP_LIB_EXT)
 
+#^ Endpoint node from a dependency perspective
 $(foreach node,$(EXEC_NODES) $(LIB_NODES),eod_$(node)_eod): %:
 	@echo "$(subst eod_,,$(subst _eod,,$@)) does not have a dependencies (.dep) file, assuming end-of-dep node"
+
+#~ NODE CREATOR
+
+
+node_% node_e_%:
+	@./scripts/create-node.sh -S$(SRC_DIR) $*
+
+node_l_%:
+	@./scripts/create-node.sh -L -S$(SRC_DIR) $*
+
+node_b_%:
+	@./scripts/create-node.sh -B -S$(SRC_DIR) $*
+

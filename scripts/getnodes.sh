@@ -1,10 +1,11 @@
-#!/bin/sh
+#!/bin/bash
 #   Script used to get all nodes from a folder
-#   Nodes returned can be either executable nodes ($1 = "EXEC")
-#   Or Library nodes ($1 = "LIB")
+#   Nodes returned can be either executable nodes (-E) or library nodes (-L), default is -E
 #   $1 is the folder to search for nodes in
-#   Example : ./scripts/getnodes "EXEC" ./src/
+#   Example : ./scripts/getnodes ./src/
 #   will return all nodes that contains source code for an executable in the directory ./src/
+#   Whereas : ./scripts/getnodes -L ./src2/
+#   will return all nodes that contains source code for a library in the directory ./src2/
 #
 #   NOTE : The term "node" refers to a subfolder containing source code for either executables (executable nodes) or libraries (library nodes)
 
@@ -16,9 +17,9 @@ fi
 nodes=""
 condition=""
 case $1 in
-    "EXEC")
+    "-E")
         condition="main.c";;
-    "LIB");;
+    "-L");;
     *)
         echo "Error: Invalid argument: $1"
         exit 2;;
