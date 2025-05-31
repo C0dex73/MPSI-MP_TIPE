@@ -147,9 +147,10 @@ Dimension *CreateDimension(int w, int h, int cs, int kr, float dt, float rdmd) {
         for(unsigned int j = 0; j < dim.MATRIXHEIGHT; ++j) {
             dim.matrix[i+j*dim.MATRIXWIDTH].x = 2.f*(i+.5f)/(dim.MATRIXWIDTH)-1.f;
             dim.matrix[i+j*dim.MATRIXWIDTH].y = 1.f-2.f*(j+.5f)/(dim.MATRIXHEIGHT);
+            dim.matrix[i+j*dim.MATRIXWIDTH].state = .0f;
+            dim.matrix[i+j*dim.MATRIXWIDTH].oldState = .0f;
         }
     }
-    randomizeDimensionByKernel(&dim);
     memcpy(dim.matrixInit, dim.matrix, w*h*sizeof(struct Cell));
 
     //Kernel initialization
