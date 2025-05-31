@@ -1,7 +1,7 @@
 #ifndef __dim_h_
 #define __dim_h_
 
-// DLL shinanigans
+// DLL shenanigans
 #ifndef DIMAPI
 #  if defined(_WIN32) || defined(__CYGWIN__)
 #   if defined(DIM_EXPORT_BUILD)
