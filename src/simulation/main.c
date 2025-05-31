@@ -13,6 +13,7 @@
 #include <glad.h>
 #include <glfw3.h>
 #include <dimensions.h>
+#include <debug.h>
 
 //#define SHOWKERNEL
 
@@ -64,9 +65,6 @@ bool filenameReady = false;
 unsigned int vShader, fShader, pShader, VAO, VBO;
 GLFWwindow* window;
 FILE* fp;
-
-//useless functions to use with gdb : 'b debug'
-void debug(){ return; }
 
 
 /************************* MAIN  *************************/
@@ -191,7 +189,7 @@ int init() {
 
     //init the matrix with random values
     randomizeDimensionByKernel(dim);
-    
+
     // glfw init
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
