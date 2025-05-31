@@ -62,36 +62,48 @@ debug:
 	@echo no debug script in debug recipe
 
 clean:
-	rm -f $(BIN_DIR)/*.$(OBJ_EXT)
+	@echo "deleting $(OBJ_EXT) files from $(BIN_DIR)..."
+	@rm -f $(BIN_DIR)/*.$(OBJ_EXT)
+	@echo "Done !"
+	
 
 reset:
-	rm -f $(BIN_DIR)/* !.gitkeep
-	rm -f $(DEP_FILES)
+	@echo "deleting everything from $(BIN_DIR)..."
+	@echo "deleting dependencies files..."
+	@rm -f $(BIN_DIR)/* !.gitkeep
+	@rm -f $(DEP_FILES)
+	@echo "Done !"
 
 _buildreset:
-	rm -f $(DIST_DIR)/*$(DOTEXE)
-	rm -f $(DIST_DIR)/*.$(LIB_EXT)
+	@echo "deleting binaries from $(DIST_DIR)..."
+	@rm -f $(DIST_DIR)/*$(DOTEXE)
+	@rm -f $(DIST_DIR)/*.$(LIB_EXT)
+	@echo "Done !"
 
 build: _buildreset reset all clean
-	cp -f $(BIN_DIR)/*$(DOTEXE) $(DIST_DIR)
-	cp -f $(BIN_DIR)/*.$(LIB_EXT) $(DIST_DIR)
+	@echo "copying output to $(DIST_DIR)..."
+	@cp -f $(BIN_DIR)/*$(DOTEXE) $(DIST_DIR)
+	@cp -f $(BIN_DIR)/*.$(LIB_EXT) $(DIST_DIR)
+	@echo "Done !"
+	@echo ""
+	@echo "-------- BUILDING COMPLETE --------"
 
 
 #~ NODES SHENANIGANS
 
 #^ executable nodes
 $(EXECS): $(BIN_DIR)/%$(DOTEXE): $$(wildcard $(SRC_DIR)/$$*/*.$(SRC_EXT)) $$(wildcard $(SRC_DIR)/$$*/*.$(HDR_EXT)) $$(shell [ "$$(shell cat $(SRC_DIR)/$$*/$(DEP_FILE) 2> /dev/null)" != "" ] && cat $(SRC_DIR)/$$*/$(DEP_FILE) 2> /dev/null || echo "eod_$(SRC_DIR)/$$*/_eod")
-#	@echo ------------- NODE COMPUTING START -------------
-	@echo buliding $@, called $(foreach dep,$^,$(patsubst %$(HDR_EXT),,$(patsubst %$(SRC_EXT),,$(dep))))...
-#	@echo
-	@$(C) -o $@ $(wildcard $(SRC_DIR)/$*/*.$(SRC_EXT)) $(foreach file,$(foreach dep,$^,$(patsubst %$(HDR_EXT),,$(patsubst %$(SRC_EXT),,$(dep)))),$(BIN_DIR)/$(file).$(LIB_EXT).$(IMP_LIB_EXT)) @$(SRC_DIR)/$*/$(NODE_ARGS_FILE) $(INCLUDE_DIRS_DIRECTIVE) $(CFLAGS)
-#	@echo -------------- NODE COMPUTING END --------------
+	@echo
+	@echo "------------- EXECUTABLE NODE PROCESSING START : $@ -------------"
+	@echo "processed dependencies : $(foreach dep,$(filter-out eod_$(SRC_DIR)/$*/_eod,$^),$(patsubst %$(HDR_EXT),,$(patsubst %$(SRC_EXT),,$(dep))))"
+	$(C) -o $@ $(wildcard $(SRC_DIR)/$*/*.$(SRC_EXT)) $(foreach file,$(foreach dep,$(filter-out eod_$(SRC_DIR)/$*/_eod,$^),$(patsubst %$(HDR_EXT),,$(patsubst %$(SRC_EXT),,$(dep)))),$(BIN_DIR)/$(file).$(LIB_EXT).$(IMP_LIB_EXT)) @$(SRC_DIR)/$*/$(NODE_ARGS_FILE) $(INCLUDE_DIRS_DIRECTIVE) $(CFLAGS)
+	@echo "Done !"
 
 #^ library/binary nodes
 $(LIBS): $(BIN_DIR)/%.$(LIB_EXT): $$(wildcard $(SRC_DIR)/$$*/*.$(SRC_EXT)) $$(wildcard $(SRC_DIR)/$$*/*.$(HDR_EXT)) $$(shell [ "$$(shell cat $(SRC_DIR)/$$*/$(DEP_FILE) 2> /dev/null)" != "" ] && cat $(SRC_DIR)/$$*/$(DEP_FILE) 2> /dev/null || echo "eod_$(SRC_DIR)/$$*/_eod")
-#	@echo ------------- NODE COMPUTING START -------------
-	@echo buliding $@, called $(foreach dep,$^,$(patsubst %$(HDR_EXT),,$(patsubst %$(SRC_EXT),,$(dep))))...
-#	@echo
+	@echo
+	@echo "------------- LIBRARY/BINARY NODE PROCESSING START : $@ -------------"
+	@echo "processed dependencies : $(foreach dep,$(filter-out eod_$(SRC_DIR)/$*/_eod,$^),$(patsubst %$(HDR_EXT),,$(patsubst %$(SRC_EXT),,$(dep))))"
 	@if [ -d $(SRC_DIR)/$*/bin/ ]; then \
 		cp -f $(SRC_DIR)/$*/bin/$(shell basename $@) $@ ; \
 		cp -f $(SRC_DIR)/$*/bin/$(shell basename $@.$(IMP_LIB_EXT)) $@.$(IMP_LIB_EXT) ; \
@@ -100,12 +112,13 @@ $(LIBS): $(BIN_DIR)/%.$(LIB_EXT): $$(wildcard $(SRC_DIR)/$$*/*.$(SRC_EXT)) $$(wi
 		mv $(SRC_DIR)/$*/$(shell basename $(subst .$(LIB_EXT),.$(OBJ_EXT),$@)) $(subst .$(LIB_EXT),.$(OBJ_EXT),$@) ; \
 		$(C) -shared -o $@ $(subst .$(LIB_EXT),.$(OBJ_EXT),$@) -Wl,--out-implib,$@.$(IMP_LIB_EXT) $(CFLAGS); \
 	fi;
-#	@echo -------------- NODE COMPUTING END --------------
+	@echo "Done !"
 
 #^ dependencies files
 #checks for includes in all c files of a node, keep only the ones that correspond to other nodes from the project and write them all in a file
 # also checks if a node is a binary node (binaries are to be downloaded and put in the bin/ folder of the node) and if so, checks if all the required binaries are in it
 $(DEP_FILES): %/$(DEP_FILE): $$(wildcard $$(subst /$(DEP_FILE),,$$@)/*.$(SRC_EXT))
+	@echo "building $@..."
 	@if ! [ -d ./$(dir $@)bin/ ]; then \
 		echo $(filter-out $(shell basename $(basename $@)),$(filter $(foreach node,$(EXEC_NODES) $(LIB_NODES),$(shell basename $(node))),$(foreach file,$(shell grep -sh "#include" . $^ | grep "." | sed 's/#include <//' | sed 's/>//' | sed 's/ //g'),$(basename $(shell basename $(file)))))) > $@ ; \
 	elif ! [ -f ./$(dir $@)bin/dependencies.lnk ]; then \
@@ -120,6 +133,7 @@ $(DEP_FILES): %/$(DEP_FILE): $$(wildcard $$(subst /$(DEP_FILE),,$$@)/*.$(SRC_EXT
 			fi \
 		done \
 	fi;
+	@echo "Done !"
 
 #^ Node to file
 $(foreach node,$(EXEC_NODES),$(shell basename $(node))): %: $(BIN_DIR)/%$(DOTEXE)
