@@ -63,21 +63,21 @@ debug:
 
 clean:
 	@echo "deleting $(OBJ_EXT) files from $(BIN_DIR)..."
-	@rm -f $(BIN_DIR)/*.$(OBJ_EXT)
+	@-rm -f $(BIN_DIR)/*.$(OBJ_EXT)
 	@echo "Done !"
 	
 
 reset:
 	@echo "deleting everything from $(BIN_DIR)..."
 	@echo "deleting dependencies files..."
-	@rm -f $(BIN_DIR)/* !.gitkeep
-	@rm -f $(DEP_FILES)
+	@-rm -f $(BIN_DIR)/* !.gitkeep
+	@-rm -f $(DEP_FILES)
 	@echo "Done !"
 
 _buildreset:
 	@echo "deleting binaries from $(DIST_DIR)..."
-	@rm -f $(DIST_DIR)/*$(DOTEXE)
-	@rm -f $(DIST_DIR)/*.$(LIB_EXT)
+	@-rm -f $(DIST_DIR)/*$(DOTEXE)
+	@-rm -f $(DIST_DIR)/*.$(LIB_EXT)
 	@echo "Done !"
 
 build: _buildreset reset all clean
