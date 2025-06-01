@@ -63,21 +63,21 @@ debug:
 
 clean:
 	@echo "deleting $(OBJ_EXT) files from $(BIN_DIR)..."
-	@-rm -f $(BIN_DIR)/*.$(OBJ_EXT)
+	@rm -f $(BIN_DIR)/*.$(OBJ_EXT) 2>/dev/null || :
 	@echo "Done !"
 	
 
 reset:
 	@echo "deleting everything from $(BIN_DIR)..."
 	@echo "deleting dependencies files..."
-	@-rm -f $(BIN_DIR)/* !.gitkeep
-	@-rm -f $(DEP_FILES)
+	@rm -f $(BIN_DIR)/* !.gitkeep 2>/dev/null || :
+	@rm -f $(DEP_FILES) 2>/dev/null || :
 	@echo "Done !"
 
 _buildreset:
 	@echo "deleting binaries from $(DIST_DIR)..."
-	@-rm -f $(DIST_DIR)/*$(DOTEXE)
-	@-rm -f $(DIST_DIR)/*.$(LIB_EXT)
+	@rm -f $(DIST_DIR)/*$(DOTEXE) 2>/dev/null || :
+	@rm -f $(DIST_DIR)/*.$(LIB_EXT) 2>/dev/null || :
 	@echo "Done !"
 
 build: _buildreset reset all clean
@@ -119,7 +119,7 @@ $(LIBS): $(BIN_DIR)/%.$(LIB_EXT): $$(wildcard $(SRC_DIR)/$$*/*.$(SRC_EXT)) $$(wi
 # also checks if a node is a binary node (binaries are to be downloaded and put in the bin/ folder of the node) and if so, checks if all the required binaries are in it
 $(DEP_FILES): %/$(DEP_FILE): $$(wildcard $$(subst /$(DEP_FILE),,$$@)/*.$(SRC_EXT))
 	@echo "building $@..."
-	@if ! [ -d ./$(dir $@)bin/ ]; then \
+	if ! [ -d ./$(dir $@)bin/ ]; then \
 		echo $(filter-out $(shell basename $(basename $@)),$(filter $(foreach node,$(EXEC_NODES) $(LIB_NODES),$(shell basename $(node))),$(foreach file,$(shell grep -sh "#include" . $^ | grep "." | sed 's/#include <//' | sed 's/>//' | sed 's/ //g'),$(basename $(shell basename $(file)))))) > $@ ; \
 	elif ! [ -f ./$(dir $@)bin/dependencies.lnk ]; then \
 			echo "Error, no binary dependencies file nor source code in node $@" ;\
@@ -127,7 +127,7 @@ $(DEP_FILES): %/$(DEP_FILE): $$(wildcard $$(subst /$(DEP_FILE),,$$@)/*.$(SRC_EXT
 		for f in $$(tail -n+2 ./$(dir $@)bin/dependencies.lnk) ; do\
 			if ! [ -f ./$(dir $@)bin/$$f ]; then \
 				echo "Node $@ is dependent of file ./$(dir $@)bin/$$f which is missing, check the url in ./$(dir $@)bin/dependencies.lnk to download it"; \
-				start $$(head -n 1 ./$(dir $@)bin/dependencies.lnk); \
+				for url in "$$(head -n 1 ./$(dir $@)bin/dependencies.lnk)"; do python -m webbrowser -t $$url; done; \
 				echo "Missing file, exiting..."; \
 				exit 1; \
 			fi \
