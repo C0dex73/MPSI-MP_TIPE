@@ -39,9 +39,13 @@ typedef struct Dimension {
     Cell* matrixInit;
     float *kernel;
     float kSum;
+    float a;
+    float b;
+    float c;
+    float d;
 } Dimension;
 
-DIMAPI Dimension *CreateDimension(int w, int h, int cs, int kr, float dt, float rdmd);
+DIMAPI Dimension *CreateDimension(int w, int h, int cs, int kr, float dt, float rdmd, float a, float b, float c, float d);
 DIMAPI void printMatrix(Dimension *dim);
 DIMAPI void doStep(Dimension *dim);
 DIMAPI void genKernel(Dimension *dim);

@@ -23,10 +23,10 @@ float growth(Dimension *dim, int x, int y) {
     float sum = neighbourSum(dim, x, y);
 
     //GAUSSIAN
-    float a = 2.f;
-    float b = .15f;
-    float c = .017f;
-    float d = -1.f;
+    float a = dim->a;
+    float b = dim->b;
+    float c = dim->c;
+    float d = dim->d;
     float res = a * expf(-(sum-b)*(sum-b)/(2*c*c))+d;
 
     return res*dim->DT;
@@ -122,15 +122,22 @@ void doStep(Dimension *dim) {
 }
 
 void printMatrix(Dimension *dim) {
-    for(unsigned int i = 0; i < dim->MATRIXWIDTH; ++i) {
-        for(unsigned int j = 0; j < dim->MATRIXHEIGHT; ++j) {
-            printf("%f,%f=>%f/%f ", j, i, dim->matrix[i+j*dim->MATRIXWIDTH].oldState, dim->matrix[i+j*dim->MATRIXWIDTH].state);
+    printf("[");
+    for(unsigned int i = 0; i < dim->MATRIXWIDTH-1; ++i) {
+        printf("[");
+        for(unsigned int j = 0; j < dim->MATRIXHEIGHT-1; ++j) {
+            printf("%f,", dim->matrix[i+j*dim->MATRIXWIDTH].state);
         }
-        printf("\n");
+        printf("%f],", dim->matrix[i+dim->MATRIXHEIGHT*dim->MATRIXWIDTH].state);
     }
+    printf("[");
+        for(unsigned int j = 0; j < dim->MATRIXHEIGHT-1; ++j) {
+            printf("%f,", dim->matrix[dim->MATRIXWIDTH+j*dim->MATRIXWIDTH].state);
+        }
+        printf("%f]]\n", dim->matrix[dim->MATRIXWIDTH+dim->MATRIXHEIGHT*dim->MATRIXWIDTH].state);
 }
 
-Dimension *CreateDimension(int w, int h, int cs, int kr, float dt, float rdmd) {
+Dimension *CreateDimension(int w, int h, int cs, int kr, float dt, float rdmd, float a, float b, float c, float d) {
     static Dimension dim;
     dim.MATRIXWIDTH = w;
     dim.MATRIXHEIGHT = h;
@@ -138,6 +145,10 @@ Dimension *CreateDimension(int w, int h, int cs, int kr, float dt, float rdmd) {
     dim.KERNELRAD = kr;
     dim.DT = dt;
     dim.RDMDENSITY = rdmd;
+    dim.a = a;
+    dim.b = b;
+    dim.c = c;
+    dim.d = d;
     dim.matrix = malloc(w*h*sizeof(struct Cell));
     dim.matrixInit = malloc(w*h*sizeof(struct Cell));
     dim.kernel = malloc((2*kr+1)*(2*kr+1)*sizeof(float));
