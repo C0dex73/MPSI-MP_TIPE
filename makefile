@@ -82,7 +82,7 @@ _buildreset:
 
 build: _buildreset reset all clean
 	@echo "copying output to $(DIST_DIR)..."
-	@cp -f $(BIN_DIR)/*$(DOTEXE) $(DIST_DIR) 2>/dev/null || :
+	@cp -f $(BIN_DIR)/*$(DOTEXE) $(DIST_DIR) 2>/dev/null || : 
 	@cp -f $(BIN_DIR)/*.$(LIB_EXT) $(DIST_DIR) 2>/dev/null || :
 	@echo "Done !"
 	@echo ""

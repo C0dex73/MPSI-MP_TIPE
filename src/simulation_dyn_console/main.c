@@ -87,6 +87,7 @@ int main() {
 
         if(step) {
             doStep(dim);
+            printMatrix(dim);
             //send data to gpu to display
             glBindBuffer(GL_ARRAY_BUFFER, VBO);
             glBufferData(GL_ARRAY_BUFFER, sizeof(struct Cell)*getMatrixLength(dim), getMatrixPointer(dim), GL_DYNAMIC_DRAW);
@@ -185,7 +186,31 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 
 //initializes all necessary components
 int init() {
-    dim = CreateDimension(256, 256, 3, 13, .1f, 0.5f, 2.0, 0.15, 0.017, -1.0);
+
+    int w, h, kr;
+    float dt, rdmd, a, b, c, d;
+    printf("------ CONFIG ------\n");
+    printf("width (128) = ");
+    scanf("%d", &w);
+    printf("height (128) = ");
+    scanf("%d", &h);
+    printf("kernel size (13) = ");
+    scanf("%d", &kr);
+    printf("delta t (0.1) = ");
+    scanf("%f", &dt);
+    printf("random kernel gen density (0.5) = ");
+    scanf("%f", &rdmd);
+    printf("a (2.0) = ");
+    scanf("%f", &a);
+    printf("b (0.15) = ");
+    scanf("%f", &b);
+    printf("c (0.017) = ");
+    scanf("%f", &c);
+    printf("d (-1.0) = ");
+    scanf("%f", &d);
+    printf("---- END CONFIG ----\n");
+
+    dim = CreateDimension(w, h, 3, kr, dt, rdmd, a, b, c, d);
 
     //init the matrix with random values
     randomizeDimensionByKernel(dim);
