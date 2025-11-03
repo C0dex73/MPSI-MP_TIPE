@@ -123,18 +123,18 @@ void doStep(Dimension *dim) {
 
 void printMatrix(Dimension *dim) {
     printf("[");
-    for(unsigned int i = 0; i < dim->MATRIXWIDTH-1; ++i) {
+    for(unsigned int i = 0; i < dim->MATRIXWIDTH-2; ++i) {
         printf("[");
-        for(unsigned int j = 0; j < dim->MATRIXHEIGHT-1; ++j) {
+        for(unsigned int j = 0; j < dim->MATRIXHEIGHT-2; ++j) {
             printf("%f,", dim->matrix[i+j*dim->MATRIXWIDTH].state);
         }
-        printf("%f],", dim->matrix[i+dim->MATRIXHEIGHT*dim->MATRIXWIDTH].state);
+        printf("%f],", dim->matrix[i+dim->MATRIXHEIGHT*(dim->MATRIXWIDTH-1)].state);
     }
     printf("[");
-        for(unsigned int j = 0; j < dim->MATRIXHEIGHT-1; ++j) {
+        for(unsigned int j = 0; j < dim->MATRIXHEIGHT-2; ++j) {
             printf("%f,", dim->matrix[dim->MATRIXWIDTH+j*dim->MATRIXWIDTH].state);
         }
-        printf("%f]]\n", dim->matrix[dim->MATRIXWIDTH+dim->MATRIXHEIGHT*dim->MATRIXWIDTH].state);
+        printf("%f]]\n", dim->matrix[dim->MATRIXHEIGHT*dim->MATRIXWIDTH-1].state);
 }
 
 Dimension *CreateDimension(int w, int h, int cs, int kr, float dt, float rdmd, float a, float b, float c, float d) {

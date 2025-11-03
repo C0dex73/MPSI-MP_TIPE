@@ -1,41 +1,72 @@
 #!/bin/bash
 #   Script used to get all nodes from a folder
-#   Nodes returned can be either executable nodes (-E) or library nodes (-L), default is -E
-#   $1 is the folder to search for nodes in
-#   Example : ./scripts/getnodes ./src/
+#   Nodes returned can be either executable nodes (-E), library nodes (-L), or other nodes (-O)
+#   $2 is the folder to search for nodes in
+#   Example : ./scripts/getnodes.sh -E ./src/
 #   will return all nodes that contains source code for an executable in the directory ./src/
-#   Whereas : ./scripts/getnodes -L ./src2/
+#   Whereas : ./scripts/getnodes.sh -L ./src2/
 #   will return all nodes that contains source code for a library in the directory ./src2/
 #
-#   NOTE : The term "node" refers to a subfolder containing source code for either executables (executable nodes) or libraries (library nodes)
+#   NOTE :  The term "node" refers to a subfolder of $2
+#
+#   CLASSIFICATION :
+#           Nodes are classified "other" when they contain a makefile of their own at their root (protocol for other nodes is to use this makefile instead of the one for libraries or executables).
+#           Nodes are classified "executable" when they contain a file named main, whatever its extension is.
+#           Leftover nodes are classified "library".
+#
+#   HELP : If $1 is -h, displays this message
 
-if [ 2 -gt $# ]; then
-    echo "Error: Invalid number of arguments"
+
+# -h to diplay help message
+if [ "-h" == "$1" ]; then
+    head -n 19 $0 | tail -n 18 | cut -c 5-
+    exit 0
+fi
+
+# checks if there is 2 args (filter and folder)
+if ! [ 2 -eq $# ]; then
+    echo "Error: Invalid number of arguments."
     exit 2
 fi
 
-nodes=""
-condition=""
-case $1 in
-    "-E")
-        condition="main.c";;
-    "-L");;
-    *)
-        echo "Error: Invalid argument: $1"
-        exit 2;;
-esac
+# checks if filter is valid
+if  ! [[ "-E -L -O" =~ ( |^)$1( |$) ]]; then
+    echo "Error: Unknown argument '$1.'"
+    exit 2
+fi
 
-for dir in $@; do
-    if [ $dir = $1 ]; then continue; fi
-    if ! [ -d $dir ] || ! [ "$(ls -A $dir)" ]; then
-        echo "Warning: directory $dir does not exists, skipping..."
-        continue
+# checks if search folder exists
+if ! [ -d $2 ]; then
+    echo "Error: $2 is not a valid directory."
+    exit 2
+fi
+
+#empty the node vars
+Enodes=""
+Lnodes=""
+Onodes=""
+
+for dir in $(echo $2/*/); do
+    # if makefile, then other node
+    if [ -f $dir/Makefile ] || [ -f $dir/makefile ] || [ -f $dir/GNUmakefile ]; then
+        Onodes="$Onodes $dir"
+    elif [ -n "$(ls $dir | grep -w main)" ]; then
+        Enodes="$Enodes $dir"
+    else
+        Lnodes="$Lnodes $dir"
     fi
-    for subdir in $(echo $dir/*/); do
-        if [ "$(ls -l $subdir | grep main.c | tail -c 7)" = "$condition" ]; then
-            nodes="$nodes $subdir"
-        fi
-    done
 done
 
-echo $nodes
+case $1 in
+    "-L")
+        echo $Lnodes ;;
+    "-E")
+        echo $Enodes ;;
+    "-O")
+        echo $Onodes ;;
+    *)
+        echo "Critical Error : Unexpected branching"
+        exit 1 ;;
+esac
+
+exit 0

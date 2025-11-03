@@ -1,0 +1,60 @@
+name: Application Build
+
+on:
+  workflow_call:
+
+permissions:
+  contents: write
+
+jobs:
+  linux-build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Install tar
+      run: sudo apt install -y tar
+
+    - name: build
+      run: make build DEPLOY=True
+
+    - name: Create tarball
+      run: ( cd build/linux ; tar -acvf ../../application-linux.tar.gz ./* )
+
+    - name: Store Linux build
+      uses: actions/upload-artifact@v4
+      with:
+        name: linux-build
+        path: ./application-linux.tar.gz
+
+  windows-build_x86:
+    runs-on: windows-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Config MSYS2 for UCRT64
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: UCRT64
+        update: true
+        install: >-
+          make
+          gcc
+          zip
+
+    - name: Build
+      shell: msys2 {0}
+      run: |
+        make build DEPLOY=True BITWISE_GLFW=True
+      
+    - name: Compress build into zip archive
+      shell: msys2 {0}
+      run: ( cd build/windows ; zip -r ../../application-windows.zip ./* )
+    
+    - name: Store Windows build
+      uses: actions/upload-artifact@v4
+      with:
+        name: windows-build
+        path: ./application-windows.zip
