@@ -5,10 +5,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-DIMAPI int loopback(int value, int max);
-DIMAPI float neighbourSum(Dimension *dim, int x, int y);
-DIMAPI float kernelF(float radius);
-DIMAPI float growth(Dimension *dim, int x, int y);
+int loopback(int value, int max);
+float neighbourSum(Dimension *dim, int x, int y);
+float kernelF(float radius);
+float growth(Dimension *dim, int x, int y);
 
 
 //calculate a new index as if the arrays were looping end <=> start
