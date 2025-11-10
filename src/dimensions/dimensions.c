@@ -1,14 +1,14 @@
-#include <dimensions.h>
+#include "dimensions.h"
 #include <string.h>
 #include <time.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-int loopback(int value, int max);
-float neighbourSum(Dimension *dim, int x, int y);
-float kernelF(float radius);
-float growth(Dimension *dim, int x, int y);
+DIMAPI int loopback(int value, int max);
+DIMAPI float neighbourSum(Dimension *dim, int x, int y);
+DIMAPI float kernelF(float radius);
+DIMAPI float growth(Dimension *dim, int x, int y);
 
 
 //calculate a new index as if the arrays were looping end <=> start
