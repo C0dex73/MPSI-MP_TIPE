@@ -4,7 +4,7 @@
 // DLL shenanigans
 #ifndef DIMAPI
 #  if defined(_WIN32) || defined(__CYGWIN__)
-#   if defined(DIMENSION_EXPORT)
+#   if defined(DIMENSIONS_EXPORT)
 #    if defined(__GNUC__)
 #     define DIMAPI __attribute__ ((dllexport)) extern
 #    else
@@ -17,7 +17,7 @@
 #     define DIMAPI __declspec(dllimport) extern
 #    endif
 #   endif
-#  elif defined(__GNUC__) && defined(DIMENSION_EXPORT)
+#  elif defined(__GNUC__) && defined(DIMENSIONS_EXPORT)
 #   define DIMAPI __attribute__ ((visibility ("default"))) extern
 #  else
 #   define DIMAPI extern
