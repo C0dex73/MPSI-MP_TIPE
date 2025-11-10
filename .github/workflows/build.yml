@@ -41,7 +41,7 @@ jobs:
         update: true
         install: >-
           make
-          gcc
+          mingw-w64-ucrt-x86_64-gcc
           zip
 
     - name: Build

@@ -98,7 +98,7 @@ ASSEMBLING_STEP_FLAG_ID:=asm
 COMPILING_STEP_FLAG_ID:=cpl
 PREPROCESSING_STEP_FLAG_ID:=pp
 DEPENDENCY_STEP_FLAG_ID:=dep
-NFLAGS_lnk=$(patsubst $(PREFLAG)%,%,$(filter $(PREFLAG)%,$(shell echo $$(cat $(dir $^)/$(1).flags 2>/dev/null ||:))))
+NFLAGS=$(patsubst $(PREFLAG)%,%,$(filter $(PREFLAG)%,$(shell echo $$(cat $(dir $^)/$(1).flags 2>/dev/null ||:))))
 
 Vdebug:
 	@echo No debug recipe in vars.mk

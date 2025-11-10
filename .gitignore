@@ -11,8 +11,9 @@
 bin/**
 
 #build files
-build/**
-!build/assets/**
+build/windows/**
+build/linux/**
+build/other/**
 
 #~ dev folders
 temp/**
