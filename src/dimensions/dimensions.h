@@ -4,7 +4,7 @@
 // DLL shenanigans
 #ifndef DIMAPI
 #  if defined(_WIN32) || defined(__CYGWIN__)
-#   if defined(DIM_EXPORT_BUILD)
+#   if defined(DIMENSION_EXPORT)
 #    if defined(__GNUC__)
 #     define DIMAPI __attribute__ ((dllexport)) extern
 #    else
@@ -17,7 +17,7 @@
 #     define DIMAPI __declspec(dllimport) extern
 #    endif
 #   endif
-#  elif defined(__GNUC__) && defined(DIM_EXPORT_BUILD)
+#  elif defined(__GNUC__) && defined(DIMENSION_EXPORT)
 #   define DIMAPI __attribute__ ((visibility ("default"))) extern
 #  else
 #   define DIMAPI extern
@@ -43,9 +43,10 @@ typedef struct Dimension {
     float b;
     float c;
     float d;
+    float noisefactor;
 } Dimension;
 
-DIMAPI Dimension *CreateDimension(int w, int h, int cs, int kr, float dt, float rdmd, float a, float b, float c, float d);
+DIMAPI Dimension *CreateDimension(int w, int h, int cs, int kr, float dt, float rdmd, float a, float b, float c, float d, float nf);
 DIMAPI void printMatrix(Dimension *dim);
 DIMAPI void doStep(Dimension *dim);
 DIMAPI void genKernel(Dimension *dim);
@@ -56,5 +57,6 @@ DIMAPI Cell *getMatrixInitPointer(Dimension *dim);
 DIMAPI unsigned int getDimensionCellSize(Dimension *dim);
 DIMAPI unsigned int getMatrixWidth(Dimension *dim);
 DIMAPI unsigned int getMatrixHeight(Dimension *dim);
+DIMAPI void noisify(Dimension *dim);
 
 #endif // __dim_h_

@@ -61,6 +61,7 @@ bool dpress;
 char filename[255] = "";
 char oldFilename[255] = "";
 bool filenameReady = false;
+bool noisebutton;
 
 unsigned int vShader, fShader, pShader, VAO, VBO;
 GLFWwindow* window;
@@ -129,6 +130,12 @@ void processInput(GLFWwindow *window, unsigned int VBO) {
     }
     dpress = ndpress;
 
+    bool noisebuttonnew = glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS;
+    if (noisebuttonnew && !noisebutton) {
+        noisify(dim);
+    }
+      noisebutton = noisebuttonnew;
+
     step = dstep;
     //RIGHT ARROW to step
     bool nrpress = glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS;
@@ -185,7 +192,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 
 //initializes all necessary components
 int init() {
-    dim = CreateDimension(256, 256, 3, 13, .1f, 0.5f, 2.0, 0.15, 0.017, -1.0);
+    dim = CreateDimension(256, 256, 3, 13, .1f, 0.5f, 2.0, 0.15, 0.017, -1.0, 1);
 
     //init the matrix with random values
     randomizeDimensionByKernel(dim);

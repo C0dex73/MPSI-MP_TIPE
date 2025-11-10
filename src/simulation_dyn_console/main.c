@@ -58,6 +58,7 @@ bool step;
 bool rpress;
 bool dstep = false;
 bool dpress;
+bool noisebutton;
 char filename[255] = "";
 char oldFilename[255] = "";
 bool filenameReady = false;
@@ -130,6 +131,13 @@ void processInput(GLFWwindow *window, unsigned int VBO) {
     }
     dpress = ndpress;
 
+    bool noisebuttonnew = glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS;
+    if (noisebuttonnew && !noisebutton) {
+	noisify(dim);
+    }
+    noisebutton = noisebuttonnew;
+
+
     step = dstep;
     //RIGHT ARROW to step
     bool nrpress = glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS;
@@ -188,7 +196,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 int init() {
 
     int w, h, kr;
-    float dt, rdmd, a, b, c, d;
+    float dt, rdmd, a, b, c, d, nf;
     printf("------ CONFIG ------\n");
     printf("width (128) = ");
     scanf("%d", &w);
@@ -208,9 +216,11 @@ int init() {
     scanf("%f", &c);
     printf("d (-1.0) = ");
     scanf("%f", &d);
+    printf("noise factor (1) = ");
+    scanf("%f", &nf);
     printf("---- END CONFIG ----\n");
 
-    dim = CreateDimension(w, h, 3, kr, dt, rdmd, a, b, c, d);
+    dim = CreateDimension(w, h, 3, kr, dt, rdmd, a, b, c, d, nf);
 
     //init the matrix with random values
     randomizeDimensionByKernel(dim);

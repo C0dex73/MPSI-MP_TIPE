@@ -12,14 +12,14 @@ float growth(Dimension *dim, int x, int y);
 
 
 //calculate a new index as if the arrays were looping end <=> start
-int loopback(int index, int len) {
+DIMAPI int loopback(int index, int len) {
     if (index > len) return index - len - 1;
     if (index < 0) return len + index + 1;
     return index;
 }
 
 //tells wether a cell should be alive or not next gen
-float growth(Dimension *dim, int x, int y) {
+DIMAPI float growth(Dimension *dim, int x, int y) {
     float sum = neighbourSum(dim, x, y);
 
     //GAUSSIAN
@@ -33,7 +33,7 @@ float growth(Dimension *dim, int x, int y) {
 }
 
 //calculates the neighbour sum ponderated by their kernel value relative the the cell in (x,y)
-float neighbourSum(Dimension *dim, int x, int y) {
+DIMAPI float neighbourSum(Dimension *dim, int x, int y) {
     float sum = .0f;
     for (int i = x-dim->KERNELRAD ; i <= x+dim->KERNELRAD ; ++i){
         for (int j = y-dim->KERNELRAD ; j <= y + dim->KERNELRAD ; ++j) {
@@ -44,7 +44,7 @@ float neighbourSum(Dimension *dim, int x, int y) {
 }
 
 //generates the kernel matrix, containing the weight of each cells in the neighbour sum
-void genKernel(Dimension *dim) {
+DIMAPI void genKernel(Dimension *dim) {
     for (int i = -dim->KERNELRAD ; i <= dim->KERNELRAD ; ++i){
         for (int j = -dim->KERNELRAD ; j <= dim->KERNELRAD ; ++j) {
             float r = sqrtf(i*i+j*j)/dim->KERNELRAD;
@@ -60,11 +60,11 @@ void genKernel(Dimension *dim) {
 }
 
 //The function to apply to a cell's radius to get its kernel factor
-float kernelF(float radius) {
+DIMAPI float kernelF(float radius) {
     return expf(4*(1-1/(4*radius*(1-radius))));
 }
 
-void randomizeDimensionByKernel(Dimension *dim) {
+DIMAPI void randomizeDimensionByKernel(Dimension *dim) {
     srand(time(0));
     for(unsigned int i = 0; i < dim->MATRIXWIDTH; ++i) {
         for(unsigned int j = 0; j < dim->MATRIXHEIGHT; ++j) {
@@ -88,20 +88,29 @@ void randomizeDimensionByKernel(Dimension *dim) {
 }
 
 //return the length of the cell array for the specified dimension
-unsigned int getMatrixLength(Dimension *dim) {
+DIMAPI unsigned int getMatrixLength(Dimension *dim) {
     return dim->MATRIXWIDTH*dim->MATRIXHEIGHT;
 }
 
-Cell *getMatrixInitPointer(Dimension *dim) {
+DIMAPI Cell *getMatrixInitPointer(Dimension *dim) {
     return dim->matrixInit;
 }
 
-Cell *getMatrixPointer(Dimension *dim) {
+DIMAPI Cell *getMatrixPointer(Dimension *dim) {
     return dim->matrix;
 }
 
+DIMAPI void noisify(Dimension *dim) {
+	srand(0);
+	for(unsigned int i = 0; i < dim->MATRIXWIDTH; ++i) {
+		for(unsigned int j = 0; j < dim->MATRIXHEIGHT; ++j) {
+			dim->matrix[i+j*dim->MATRIXWIDTH].state += (((float)rand())/((float)RAND_MAX)*2.f - 1.f)*dim->noisefactor;
+		}
+	}
+}
+
 //simulation step
-void doStep(Dimension *dim) {
+DIMAPI void doStep(Dimension *dim) {
     //calculate state from oldState
     for(unsigned int i = 0; i < dim->MATRIXWIDTH; ++i) {
         for(unsigned int j = 0; j < dim->MATRIXHEIGHT; ++j) {
@@ -121,7 +130,7 @@ void doStep(Dimension *dim) {
     }
 }
 
-void printMatrix(Dimension *dim) {
+DIMAPI void printMatrix(Dimension *dim) {
     printf("[");
     for(unsigned int i = 0; i < dim->MATRIXWIDTH-2; ++i) {
         printf("[");
@@ -137,7 +146,7 @@ void printMatrix(Dimension *dim) {
         printf("%f]]\n", dim->matrix[dim->MATRIXHEIGHT*dim->MATRIXWIDTH-1].state);
 }
 
-Dimension *CreateDimension(int w, int h, int cs, int kr, float dt, float rdmd, float a, float b, float c, float d) {
+DIMAPI Dimension *CreateDimension(int w, int h, int cs, int kr, float dt, float rdmd, float a, float b, float c, float d, float nf) {
     static Dimension dim;
     dim.MATRIXWIDTH = w;
     dim.MATRIXHEIGHT = h;
@@ -152,6 +161,7 @@ Dimension *CreateDimension(int w, int h, int cs, int kr, float dt, float rdmd, f
     dim.matrix = malloc(w*h*sizeof(struct Cell));
     dim.matrixInit = malloc(w*h*sizeof(struct Cell));
     dim.kernel = malloc((2*kr+1)*(2*kr+1)*sizeof(float));
+    dim.noisefactor = nf;
 
     //matrix and matrixInit initialization
     for(unsigned int i = 0; i < dim.MATRIXWIDTH; ++i) {
@@ -170,14 +180,14 @@ Dimension *CreateDimension(int w, int h, int cs, int kr, float dt, float rdmd, f
     return &dim;
 }
 
-unsigned int getDimensionCellSize(Dimension *dim) {
+DIMAPI unsigned int getDimensionCellSize(Dimension *dim) {
     return dim->CELLSIZE;
 }
 
-unsigned int getMatrixWidth(Dimension *dim) {
+DIMAPI unsigned int getMatrixWidth(Dimension *dim) {
     return dim->MATRIXWIDTH;
 }
 
-unsigned int getMatrixHeight(Dimension *dim) {
+DIMAPI unsigned int getMatrixHeight(Dimension *dim) {
     return dim->MATRIXHEIGHT;
 }
