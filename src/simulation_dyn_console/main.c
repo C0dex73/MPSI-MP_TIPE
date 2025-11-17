@@ -77,7 +77,6 @@ int main() {
 
     // MAIN LOOP
     while (!glfwWindowShouldClose(window)) {
-        Ttime += fpsMax;
 	lastFrameTime = glfwGetTime();
         now = glfwGetTime();
 
@@ -87,6 +86,7 @@ int main() {
         processInput(window, VBO);
 
         if(step) {
+	    Ttime += fpsMax;
             doStep(dim);
             printMatrix(dim);
             //send data to gpu to display
