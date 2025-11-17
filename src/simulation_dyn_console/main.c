@@ -7,9 +7,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
-#include <stdlib.h>
 #include <time.h>
-#include <math.h>
 #include <glad.h>
 #include <glfw3.h>
 #include <dimensions.h>
@@ -62,6 +60,7 @@ bool noisebutton;
 char filename[255] = "";
 char oldFilename[255] = "";
 bool filenameReady = false;
+double Ttime = 0;
 
 unsigned int vShader, fShader, pShader, VAO, VBO;
 GLFWwindow* window;
@@ -78,7 +77,8 @@ int main() {
 
     // MAIN LOOP
     while (!glfwWindowShouldClose(window)) {
-        lastFrameTime = glfwGetTime();
+        Ttime += fpsMax;
+	lastFrameTime = glfwGetTime();
         now = glfwGetTime();
 
         //fps cap
@@ -104,6 +104,9 @@ int main() {
 
         lastFrameTime = now;
     }
+
+
+    printf("%f\n", Ttime);
 
     //close glfw, exit
     glfwTerminate();
