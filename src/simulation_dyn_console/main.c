@@ -51,7 +51,7 @@ const char *fShaderP =
 "}\n\0";
 
 double now, deltaTime, lastFrameTime;
-const double fpsMax = 1/60.f;
+double fpsMax = 1/60.f;
 bool step;
 bool rpress;
 bool dstep = false;
@@ -61,6 +61,7 @@ char filename[255] = "";
 char oldFilename[255] = "";
 bool filenameReady = false;
 double Ttime = 0;
+double zero = 0;
 
 unsigned int vShader, fShader, pShader, VAO, VBO;
 GLFWwindow* window;
@@ -74,7 +75,6 @@ int main() {
     if(err != 0) {
         return err;
     }
-
     // MAIN LOOP
     while (!glfwWindowShouldClose(window)) {
 	lastFrameTime = glfwGetTime();
@@ -86,7 +86,6 @@ int main() {
         processInput(window, VBO);
 
         if(step) {
-	    Ttime += fpsMax;
             doStep(dim);
             printMatrix(dim);
             //send data to gpu to display
@@ -105,8 +104,9 @@ int main() {
         lastFrameTime = now;
     }
 
+    if (step) { Ttime += clock() - zero; }
 
-    printf("%f\n", Ttime);
+    printf("%f\n", Ttime/CLOCKS_PER_SEC);
 
     //close glfw, exit
     glfwTerminate();
@@ -131,6 +131,11 @@ void processInput(GLFWwindow *window, unsigned int VBO) {
     bool ndpress = glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS;
     if(ndpress && !dpress) {
         dstep = !dstep;
+	if (dstep) {
+	    zero = clock();
+	} else {
+	    Ttime += clock() - zero;
+	}
     }
     dpress = ndpress;
 
@@ -198,7 +203,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 //initializes all necessary components
 int init() {
 
-    int w, h, kr;
+    int w, h, kr, invFps, ps;
     float dt, rdmd, a, b, c, d, nf;
     printf("------ CONFIG ------\n");
     printf("width (128) = ");
@@ -219,11 +224,16 @@ int init() {
     scanf("%f", &c);
     printf("d (-1.0) = ");
     scanf("%f", &d);
-    printf("noise factor (1) = ");
+    printf("noise factor (1.0) = ");
     scanf("%f", &nf);
+    printf("lifepatch size (13) = ");
+    scanf("%d", &ps);
+    printf("max FPS (60) = ");
+    scanf("%d", &invFps);
+    fpsMax = 1.f/invFps;
     printf("---- END CONFIG ----\n");
 
-    dim = CreateDimension(w, h, 3, kr, dt, rdmd, a, b, c, d, nf);
+    dim = CreateDimension(w, h, 3, kr, dt, rdmd, a, b, c, d, nf, ps);
 
     //init the matrix with random values
     randomizeDimensionByKernel(dim);

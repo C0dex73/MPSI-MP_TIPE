@@ -44,9 +44,10 @@ typedef struct Dimension {
     float c;
     float d;
     float noisefactor;
+    int patchsize;
 } Dimension;
 
-DIMAPI Dimension *CreateDimension(int w, int h, int cs, int kr, float dt, float rdmd, float a, float b, float c, float d, float nf);
+DIMAPI Dimension *CreateDimension(int w, int h, int cs, int kr, float dt, float rdmd, float a, float b, float c, float d, float nf, int ps);
 DIMAPI void printMatrix(Dimension *dim);
 DIMAPI void doStep(Dimension *dim);
 DIMAPI void genKernel(Dimension *dim);

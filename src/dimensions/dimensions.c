@@ -77,10 +77,10 @@ DIMAPI void randomizeDimensionByKernel(Dimension *dim) {
 
     for(unsigned int k = 0; k <= ((float)dim->MATRIXWIDTH*1.f)/((float)dim->KERNELRAD)*dim->RDMDENSITY; ++k) {
         unsigned int x = ((float)rand()/(float)(RAND_MAX))*((float)dim->MATRIXWIDTH), y = ((float)rand()/(float)(RAND_MAX))*((float)dim->MATRIXHEIGHT);
-        for(int i = x-dim->KERNELRAD; i <= x+dim->KERNELRAD; ++i) {
-            for (int j = y-dim->KERNELRAD ; j <= y+dim->KERNELRAD ; ++j) {
-                dim->matrix[loopback(i, dim->MATRIXHEIGHT-1)+loopback(j, dim->MATRIXWIDTH-1)*dim->MATRIXWIDTH].state = ((float)rand()/(float)(RAND_MAX));
-                dim->matrix[loopback(i, dim->MATRIXHEIGHT-1)+loopback(j, dim->MATRIXWIDTH-1)*dim->MATRIXWIDTH].oldState = ((float)rand()/(float)(RAND_MAX));
+        for(int i = 0; i <= dim->patchsize; ++i) {
+            for (int j = 0 ; j <= dim->patchsize ; ++j) {
+                dim->matrix[loopback(x+i, dim->MATRIXHEIGHT-1)+loopback(y+j, dim->MATRIXWIDTH-1)*dim->MATRIXWIDTH].state = ((float)rand()/(float)(RAND_MAX));
+                dim->matrix[loopback(x+i, dim->MATRIXHEIGHT-1)+loopback(y+j, dim->MATRIXWIDTH-1)*dim->MATRIXWIDTH].oldState = ((float)rand()/(float)(RAND_MAX));
             }
         }
     }
@@ -146,7 +146,7 @@ DIMAPI void printMatrix(Dimension *dim) {
         printf("%f]]\n", dim->matrix[dim->MATRIXHEIGHT*dim->MATRIXWIDTH-1].state);
 }
 
-DIMAPI Dimension *CreateDimension(int w, int h, int cs, int kr, float dt, float rdmd, float a, float b, float c, float d, float nf) {
+DIMAPI Dimension *CreateDimension(int w, int h, int cs, int kr, float dt, float rdmd, float a, float b, float c, float d, float nf, int ps) {
     static Dimension dim;
     dim.MATRIXWIDTH = w;
     dim.MATRIXHEIGHT = h;
@@ -162,6 +162,7 @@ DIMAPI Dimension *CreateDimension(int w, int h, int cs, int kr, float dt, float 
     dim.matrixInit = malloc(w*h*sizeof(struct Cell));
     dim.kernel = malloc((2*kr+1)*(2*kr+1)*sizeof(float));
     dim.noisefactor = nf;
+    dim.patchsize = ps;
 
     //matrix and matrixInit initialization
     for(unsigned int i = 0; i < dim.MATRIXWIDTH; ++i) {

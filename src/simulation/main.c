@@ -192,7 +192,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 
 //initializes all necessary components
 int init() {
-    dim = CreateDimension(256, 256, 3, 13, .1f, 0.5f, 2.0, 0.15, 0.017, -1.0, 1);
+    dim = CreateDimension(256, 256, 3, 13, .1f, 0.5f, 2.0, 0.15, 0.017, -1.0, 0.25, 13);
 
     //init the matrix with random values
     randomizeDimensionByKernel(dim);
